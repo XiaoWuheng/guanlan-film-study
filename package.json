@@ -1,0 +1,22 @@
+{
+  "name": "guanlan-film-study",
+  "version": "0.3.0",
+  "description": "Local-first shot-by-shot film study with AI assistance, human review and Excel export.",
+  "type": "module",
+  "license": "MIT",
+  "author": "XiaoWuheng",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/XiaoWuheng/guanlan-film-study.git"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node desktop.mjs --no-open",
+    "test": "node --test tests/*.test.mjs",
+    "check": "node scripts/check-source.mjs",
+    "runtime:fetch": "node scripts/fetch-runtime.mjs",
+    "build:windows": "node scripts/build-windows.mjs"
+  }
+}

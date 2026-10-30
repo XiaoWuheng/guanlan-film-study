@@ -1,0 +1,7 @@
+import {readFile,stat} from 'node:fs/promises';
+import {resolve,dirname} from 'node:path';
+import {spawnSync} from 'node:child_process';
+import {publicFiles,root} from './public-files.mjs';
+const files=await publicFiles(),denied=['data/','runtime/','outputs/','releases/','.openai/','.git/'];
+for(const file of files){if(denied.some(x=>file.startsWith(x))||/\.(exe|dll|zip|log|tmp)$/i.test(file))throw Error('公开文件白名单包含运行数据或构建产物：'+file);if((await stat(resolve(root,file))).size>8*1024*1024)throw Error('公开源码文件过大：'+file);if(/\.(mjs|js)$/.test(file)){const result=spawnSync(process.execPath,['--check',resolve(root,file)],{encoding:'utf8',windowsHide:true});if(result.status!==0)throw Error('语法检查失败：'+file+'\n'+result.stderr);}if(/\.(mjs|js|md|json|html|yml|svg|css|vbs)$/.test(file)){const text=await readFile(resolve(root,file),'utf8');const suspicious=[/sk-[A-Za-z0-9]{24,}/,/gh[pousr]_[A-Za-z0-9]{30,}/,/C:[\\/]Users[\\/]jiuzhou/i,/D:[\\/]BaiduNetdiskDownload/i];if(suspicious.some(x=>x.test(text)))throw Error('发现疑似个人路径或凭据，请人工核对：'+file);if(file.endsWith('.md'))for(const match of text.matchAll(/!?\[[^\]]*\]\(([^\s)]+)(?:\s+"[^"]*")?\)/g)){const target=match[1];if(/^(https?:|mailto:|#)/.test(target))continue;const path=resolve(root,dirname(file),decodeURIComponent(target.split('#')[0]));await stat(path).catch(()=>{throw Error('文档中的本地链接不存在：'+file+' → '+target);});}}}
+console.log(`公开源码检查通过：${files.length} 个文件；JavaScript 语法、文档链接与常见敏感内容模式未发现问题。`);

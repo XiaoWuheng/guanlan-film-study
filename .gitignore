@@ -1,0 +1,15 @@
+data/
+runtime/
+releases/
+outputs/
+node_modules/
+.env
+.env.*
+!.env.example
+*.log
+*.tmp
+*.zip
+dist/downloads/
+.openai/
+.DS_Store
+Thumbs.db

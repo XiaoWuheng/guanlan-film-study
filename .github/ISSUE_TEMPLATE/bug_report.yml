@@ -1,0 +1,23 @@
+name: 问题反馈
+description: 报告可复现的问题，请勿附上密钥或私人影片。
+body:
+  - type: input
+    id: version
+    attributes:
+      label: 版本、系统与浏览器
+      placeholder: v0.3.0 / Windows 11 / Chrome
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 请使用原创、公开许可或脱敏素材。
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: 预期与实际结果
+    validations:
+      required: true

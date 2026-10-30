@@ -1,0 +1,13 @@
+name: 功能建议
+description: 描述你希望改善的拉片学习场景。
+body:
+  - type: textarea
+    id: scenario
+    attributes:
+      label: 你在什么场景遇到困难？
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: 希望怎样改善？
