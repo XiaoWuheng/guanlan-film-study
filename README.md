@@ -8,9 +8,9 @@
 
 [下载 Windows 免安装版](https://github.com/XiaoWuheng/guanlan-film-study/releases/latest) · [打开网页版](https://guanlan-film-study-jz.quirky-wolf-4804.chatgpt.site/) · [快速上手](docs/QUICKSTART.md) · [连接 AI](docs/AI-CONNECTION.md) · [常见问题](docs/FAQ.md)
 
-![Version](https://img.shields.io/badge/version-0.3.0-dbb888)
-![License](https://img.shields.io/badge/license-MIT-8ba98b)
-![Platform](https://img.shields.io/badge/platform-Web%20%7C%20Windows-334a46)
+[v0.3.0 体验版](https://github.com/XiaoWuheng/guanlan-film-study/releases/tag/v0.3.0)
+· [MIT 开源许可](LICENSE)
+· Web / Windows
 [![Checks](https://github.com/XiaoWuheng/guanlan-film-study/actions/workflows/ci.yml/badge.svg)](https://github.com/XiaoWuheng/guanlan-film-study/actions/workflows/ci.yml)
 
 </div>
