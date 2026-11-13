@@ -83,6 +83,21 @@ export function seriesWorkbookModel(title,projects,profile={}){
 }
 export function exportStudyXlsx(project,notes={}){return writeWorkbook(reportWorkbookModel(project,notes));}
 export function exportSeriesXlsx(title,projects,profile={}){return writeWorkbook(seriesWorkbookModel(title,projects,profile));}
+export function exportMethodsXlsx(methods,sources=new Map()){
+ const sheet={
+  name:'方法论',title:'观澜 · 方法论',context:`共 ${methods.length} 条 · 有来源的时间为原片时间，单位秒。`,
+  headers:['方法名称','片型','学习主题','怎样复用','适用情境','证据','作用与意图推断','边界与制作取舍','练习','来源项目','集数或素材','镜号','起点 秒','终点 秒','复核状态','标签'],
+  widths:[29,18,19,48,35,46,42,43,38,29,17,21,12,12,16,22],freezeColumns:1,
+  rows:methods.map(method=>{
+   const source=sources.get(method.projectId),offset=method.sourceStart||0;
+   return [method.title,method.filmType||'未标注片型',method.topic||'未分类',method.method,method.when,method.evidence,method.reason,
+    method.limits,method.practice,source?.title||method.projectTitle||'人工整理',source?.label||method.sourceLabel||'',
+    method.shotIds.join('、'),method.projectId?offset+method.start:'',method.projectId?offset+method.end:'',
+    method.changed?'来源待重核':method.reviewed?'已复核':'待复核',method.tags].map(safeText);
+  })
+ };
+ return writeWorkbook({sheets:[sheet]});
+}
 function writeWorkbook(model){const files=[],overrides=[],sheets=[],workbookRels=[],imageDefaults=new Set();let mediaSerial=0;
  files.push(['_rels/.rels',`<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`],['xl/styles.xml',styles]);
  model.sheets.forEach((s,index)=>{const id=index+1,n=s.headers.length,lastRow=s.rows.length+5,lastColumn=columnName(n-1),links=[];sheets.push(`<sheet name="${xml(s.name)}" sheetId="${id}" r:id="rId${id}"/>`);workbookRels.push(`<Relationship Id="rId${id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${id}.xml"/>`);overrides.push(`<Override PartName="/xl/worksheets/sheet${id}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`);

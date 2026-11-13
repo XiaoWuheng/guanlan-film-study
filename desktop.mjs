@@ -45,7 +45,7 @@ const server=createServer(async(req,res)=>{try{
  if(req.method!=='GET'&&req.method!=='HEAD')return json(res,405,{error:'方法无效'});
  const path=resolve(root,'.'+decodeURIComponent(url.pathname==='/'?'/index.html':url.pathname)),rel=relative(root,path);
  if(rel.startsWith('..')||isAbsolute(rel))return json(res,403,{error:'不可访问'});
- const allowed={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.zip':'application/zip','.part':'application/octet-stream','.json':'application/json; charset=utf-8'};
+ const allowed={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.zip':'application/zip','.part':'application/octet-stream','.json':'application/json; charset=utf-8','.png':'image/png','.mp4':'video/mp4'};
  const mime=allowed[extname(path)];if(!mime)return json(res,404,{error:'不存在'});
  let info;try{info=await stat(path);}catch{return json(res,404,{error:'不存在'});}if(!info.isFile())return json(res,404,{error:'不存在'});
  res.writeHead(200,{'Content-Type':mime,'Content-Length':info.size,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'});if(req.method==='HEAD')return res.end();const stream=createReadStream(path);stream.on('error',()=>res.destroy());res.on('close',()=>stream.destroy());stream.pipe(res);

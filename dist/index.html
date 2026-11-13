@@ -1,17 +1,72 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>观澜 · 拉片学习室</title><meta name="description" content="自带AI的拉片学习室。从看见，到看懂，再到会用。"><link rel="stylesheet" href="app.css"></head><body>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>观澜 · 拉片学习室</title><meta name="description" content="逐镜回看成片，理解拍法，把观察整理成可复用的导演和制作方法。"><link rel="stylesheet" href="app.css"><link rel="stylesheet" href="home/title-font.css"></head><body class="viewing-home">
+<script>if(location.search)document.body.classList.remove('viewing-home');</script>
+<section id="home-page" aria-label="观澜首页">
+  <div class="home-light" aria-hidden="true">
+    <div class="home-scene"></div><div class="home-beam"></div><div class="home-pointer"></div>
+  </div>
+  <div class="home-shell">
+    <div class="home-top">
+      <a href="#" class="home-brand" aria-label="观澜首页"><strong>观澜</strong><span>拉片学习室</span></a>
+      <nav aria-label="首页导航"><button type="button" data-home-page="projects">项目库</button><button type="button" data-home-page="learning">学习库</button><button id="home-help" type="button">使用说明</button><button id="home-motion" type="button" aria-label="暂停光影动效" title="暂停光影动效"><svg viewBox="0 0 20 20" aria-hidden="true"><path class="home-motion-pause" d="M7 5v10m6-10v10"/><path class="home-motion-play" d="m7 5 7 5-7 5Z"/></svg></button></nav>
+    </div>
+    <div class="home-hero">
+      <h1><span class="home-ink-line">看懂一场戏，</span> <span class="home-ink-line">学会一种拍法</span></h1>
+      <p>逐镜回看成片，拆解导演的选择，把有效的拍法带进自己的制作。</p>
+      <div id="home-actions" class="home-actions">
+        <button type="button" class="home-primary" data-home-page="new">开始拉片 <span aria-hidden="true">↗</span></button>
+        <button type="button" id="home-demo" data-home-page="demo" aria-expanded="false" aria-controls="home-preview">看一段示例 <span aria-hidden="true">▷</span></button>
+      </div>
+      <section id="home-preview" aria-labelledby="home-preview-title" hidden>
+        <h2 id="home-preview-title" tabindex="-1">拉片示例</h2>
+        <p id="home-status" role="status"></p>
+        <div class="home-preview-body">
+          <video id="home-preview-video" controls playsinline preload="auto" aria-label="示例原片"></video>
+          <div class="home-preview-analysis">
+            <div id="home-preview-shots" role="group" aria-label="选择示例镜头"></div>
+            <div id="home-preview-shot" aria-live="polite">
+              <div id="home-preview-meta"></div>
+              <h3 id="home-preview-frame"></h3>
+              <p id="home-preview-why"></p>
+            </div>
+          </div>
+        </div>
+        <div class="home-preview-actions">
+          <button id="home-preview-back" type="button">← 返回首页选项</button>
+          <button id="home-preview-retry" type="button" aria-controls="home-preview" hidden>重试</button>
+          <button id="home-preview-open" type="button" disabled>进入完整拉片室 <span aria-hidden="true">↗</span></button>
+        </div>
+      </section>
+    </div>
+    <div class="home-entries" aria-label="观澜工作区">
+      <button class="home-entry" type="button" data-home-page="projects">
+        <span class="home-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg></span>
+        <strong>项目库</strong><span>按剧归档正片和投流素材，接着上次的位置看。</span>
+      </button>
+      <button class="home-entry" type="button" data-home-page="demo" aria-expanded="false" aria-controls="home-preview">
+        <span class="home-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="m10 8 6 4-6 4Zm-6 9h16"/></svg></span>
+        <strong>逐镜学习</strong><span>点镜头跳回原片，读画面、时长和为什么这样拍。</span>
+      </button>
+      <button class="home-entry" type="button" data-home-page="learning">
+        <span class="home-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 5h12a2 2 0 0 1 2 2v13H7a2 2 0 0 1-2-2Zm0 12a2 2 0 0 1 2-2h12m-9-10v6l2-1 2 1V5"/></svg></span>
+        <strong>方法论</strong><span>整理可复用的拍法、适用条件和练习，导出 Excel。</span>
+      </button>
+    </div>
+  </div>
+</section>
 <header><a class="brand" href="#" aria-label="观澜 · 拉片学习室"><strong class="brand-wordmark">观澜</strong><span>拉片学习室</span></a><button id="sidebar-toggle" class="sidebar-toggle quiet" type="button" aria-controls="workspace-sidebar" aria-expanded="true" title="收起项目栏" aria-label="收起项目栏"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="2" y="3" width="16" height="14" rx="2"/><path d="M7 3v14"/><path id="sidebar-toggle-arrow" d="M13 7 L10 10 L13 13"/></svg><span id="sidebar-toggle-label">项目栏</span></button><span class="edition" id="edition">网页工作台</span><span id="connection-state" class="connection-state">助手尚未连接</span><button id="connect-open">连接 AI 助手</button><button id="help-open" class="quiet">使用说明</button></header>
 <nav id="workspace-sidebar" class="app-sidebar" aria-label="工作台导航">
   <div class="sidebar-nav">
-    <button data-action="projects" class="active" aria-label="我的拉片" aria-current="page" data-label="我的拉片"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 4v16m8-16v16M4 9h4m8 0h4M4 15h4m8 0h4"/></svg><span>我的拉片</span></button>
+    <button data-action="home" aria-label="首页" data-label="首页"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v9a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2Z"/></svg><span>首页</span></button>
+    <button data-action="projects" aria-label="项目库" data-label="项目库"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M8 13h8"/></svg><span>项目库</span></button>
     <button data-action="new" aria-label="新建拉片" data-label="新建拉片"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8m-4-4h8"/></svg><span>新建拉片</span></button>
-    <button id="learning-open" aria-label="学习库" data-label="学习库"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h12a2 2 0 0 1 2 2v13H7a2 2 0 0 1-2-2Zm0 12a2 2 0 0 1 2-2h12m-9-10v6l2-1 2 1V5"/></svg><span>学习库</span></button>
+    <button id="learning-open" data-action="learning" aria-label="学习库" data-label="学习库"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h12a2 2 0 0 1 2 2v13H7a2 2 0 0 1-2-2Zm0 12a2 2 0 0 1 2-2h12m-9-10v6l2-1 2 1V5"/></svg><span>学习库</span></button>
   </div>
   <div class="sidebar-recent"><span class="sidebar-label">最近学习</span><div id="sidebar-projects"></div></div>
 </nav>
 <button id="sidebar-backdrop" class="sidebar-backdrop" type="button" tabindex="-1" aria-hidden="true" hidden></button>
-<main><section class="hero"><h1>拉片工作台</h1></section>
-<div class="layout"><section class="panel intake"><div class="section-title"><h2>片源</h2></div>
+<main><section id="intake-title" class="hero" hidden><h1>新建拉片</h1></section>
+<div id="intake-view" class="layout" hidden><section class="panel intake"><div class="section-title"><h2>片源</h2></div>
 <label id="dropzone" class="dropzone" for="video-file"><span class="upload-icon">＋</span><strong id="file-name">选择视频，或拖到这里</strong><span>优先 MP4 · 视频先在当前设备处理</span><input id="video-file" type="file" accept="video/*"></label>
 <video id="source-video" controls playsinline preload="metadata" hidden></video>
 <details class="link-input"><summary>只有网盘或发行平台链接？</summary><label>视频链接 / 提取码<textarea id="source-link" rows="2" placeholder="粘贴百度网盘分享、发行平台页面或可访问的视频直链"></textarea></label><p class="muted small">平台分享页交给你的 AI 助手代取片。电脑端支持公开视频直链及可公开获取的分享页；登录网盘、付费与受保护内容仍通过自己的平台取片。</p><button id="import-link" class="primary">导入公开视频（电脑端）</button><button id="copy-link-task" class="quiet">复制代取片任务</button></details>
@@ -23,15 +78,16 @@
 <div id="api-mode" hidden><label>接口根地址<input id="api-base" type="url" placeholder="https://你的服务商/v1" autocomplete="url"></label><label>支持图片输入的模型名<input id="api-model" placeholder="填写服务商提供的视觉模型名" autocomplete="off"></label><label>API Key<input id="api-key" type="password" autocomplete="off" placeholder="仅本次页面使用，不写入项目或任务包"></label><p class="small muted" id="api-tip">兼容 Chat Completions 图片输入。请求直接发往你填写的服务商，费用由你的账号承担；若服务商不允许网页连接，请使用电脑端。</p></div>
 <div class="actions"><button id="prepare" class="primary">准备镜头 <span>→</span></button><button id="stop" hidden>停止</button></div><p id="status" role="status" aria-live="polite">选择一段片，准备开始。建议每次研究 1—3 分钟。</p><progress id="progress" max="100" value="0" hidden></progress><div id="prepared" hidden><div class="metrics" id="metrics"></div><p id="request-estimate" class="small muted"></p><div class="actions"><button id="assistant-ready" class="primary">复制给助手的话</button><button id="analyze" class="primary" hidden>用我的 API 开始分析</button></div><button id="open-draft" class="quiet">回看候选镜头 / 调整切点</button></div>
 <details class="advanced-pack"><summary>备用交接与项目备份</summary><p class="small muted">助手暂不支持直接连接时，可使用文件交接。已连接的助手无需执行这些步骤。</p><button id="export-task">导出助手任务包</button><div class="import-box"><label class="file-label">导入分析结果<input id="result-file" type="file" accept="application/json,.json"></label><label class="file-label">恢复项目备份<input id="project-file" type="file" accept="application/json,.json"></label></div></details></section></div>
-<section class="library" id="library"><div class="section-title"><h2>我的拉片</h2></div>
+<section class="library" id="library" hidden><div class="section-title"><h1>项目库</h1><button id="library-new" type="button" class="primary">＋ 新建拉片</button></div>
   <nav class="library-tabs" aria-label="项目分类"><button data-library="all" aria-pressed="true">全部</button><button data-library="recent" aria-pressed="false">最近</button><button data-library="saved" aria-pressed="false">收藏</button><button data-library="topics" aria-pressed="false">题材</button></nav>
   <div id="library-filters" class="library-filters"><input id="project-search" type="search" placeholder="搜索剧名、标签、ID" aria-label="搜索项目"><select id="project-status" aria-label="分析状态"><option value="">全部状态</option><option value="已有分析">已有分析</option><option value="候选素材">待分析</option></select><select id="project-tag" aria-label="题材标签"><option value="">全部标签</option></select><select id="project-order" aria-label="项目排序"><option value="recent">最近打开</option><option value="updated">最近更新</option><option value="title">剧名</option></select></div>
   <div id="projects" class="projects"></div>
 </section>
-<footer><span>观澜 · 拉片学习工作台 · 0.4</span><a href="https://github.com/XiaoWuheng/guanlan-film-study/releases/tag/v0.3.0" id="desktop-download">下载 Windows 免安装版 0.3.0</a></footer>
+<section id="learning-page" aria-label="学习库" hidden></section>
+<footer><span>观澜 · 拉片学习工作台 · 0.5.0</span><a href="https://github.com/XiaoWuheng/guanlan-film-study/releases/latest" id="desktop-download">下载 Windows 免安装版</a></footer>
 <section id="workspace-dialog" aria-label="当前项目学习报告" hidden>
-  <div class="dialog-head"><button id="close-workspace" aria-label="返回项目">← <span>项目</span></button><span id="workspace-feedback" role="status" hidden></span><div><button id="workspace-profile" hidden>整剧资料</button><button id="save-report" title="导出逐镜 Excel 报告">导出 Excel</button><button id="save-project">备份</button><button id="undo-cut" hidden title="撤销最近一次局部切镜或合并">撤销切镜</button></div></div>
-  <div id="cut-editor" hidden><label>候选切点（秒，相对研究起点；含 0，不含片尾）<textarea id="cuts" rows="2"></textarea></label><button id="apply-cuts">应用切点并重抽帧</button><p class="muted small">调整会清除旧分析和对照；应用前自动保留旧项目备份。</p></div><iframe id="viewer" title="原片同步拉片报告"></iframe>
+  <div class="dialog-head"><button id="close-workspace" aria-label="返回项目库">← <span>项目库</span></button><span id="workspace-feedback" role="status" hidden></span><div><button id="workspace-methods" type="button" hidden>本片方法</button><button id="workspace-profile" hidden>整剧资料</button><button id="save-report" title="导出逐镜 Excel 报告">导出 Excel</button><button id="save-project">备份</button><button id="undo-cut" hidden title="撤销最近一次局部切镜或合并">撤销切镜</button></div></div>
+  <div id="cut-editor" hidden><label>候选切点（秒，相对研究起点；含 0，不含片尾）<textarea id="cuts" rows="2"></textarea></label><button id="apply-cuts">应用切点并重抽帧</button><p class="muted small">调整会清除旧分析和对照；应用前自动保留旧项目备份。</p></div><iframe id="viewer" title="原片同步拉片报告" allowfullscreen></iframe>
 </section>
 </main><dialog id="connect"><button id="connect-close" class="close">关闭 ×</button><p class="eyebrow">ASSISTANT CONNECTION</p><h2>让助手直接使用观澜</h2><p class="muted">只需连接一次，以后不用导出和导回。</p><p id="connect-status" class="assistant-state" role="status">等待本机工作台连接信息。</p><div id="connect-instructions"><ol class="steps"><li>启动 Windows 本机工作台。</li><li>把下方配置添加到助手的工具连接设置。</li><li>请助手查询观澜项目，验证连接。</li></ol><p class="small muted">使用 MCP 的助手可以直接读取素材并写回报告。网页版需本机端支撑；此连接不会自动登录或唤起任意平台，也不读取平台凭证。</p></div><label class="config-label">通用工具连接配置</label><pre id="mcp-config" tabindex="0">请先启动本机工作台，再获取连接配置。</pre><div class="actions"><button id="copy-mcp-config" class="primary">复制通用配置</button><button id="copy-codex-config">复制 Codex 配置</button></div><p class="small muted">配置完成后，在助手中说“分析观澜里的当前项目”。只有收到真实调用，工作台才会显示助手已连接。</p></dialog>
 <dialog id="help"><button id="help-close" class="close">关闭 ×</button><h2>把片看懂，把方法带回自己的戏</h2><h3>连接自己的 AI 助手</h3><p>从“连接 AI 助手”完成一次 MCP 配置。准备好镜头后，在助手里要求分析观澜当前项目。助手可直接读取镜头、字幕与剧本，再把结果写回工作台，报告会自动更新。平台需要支持 MCP 等工具连接和图片输入；工作台不会自动借用订阅或登录凭证。</p><h3>使用自己的模型</h3><p>选择“使用我的模型”，填写根地址、支持图片输入的模型名和自己的 API Key。准备素材后查看预计调用量，再开始分析。Key 仅本次会话使用；发送的是抽取画面、字幕、剧本和学习要求。</p><h3>网页与电脑端</h3><p>两端共用学习界面。电脑端解压后双击启动，不需要安装 Codex 或 Node。助手直连由本机工作台提供；网页直连模型若遇服务商跨域限制，可以改用电脑端。通过项目备份可迁移学习内容。</p><h3>回看与核对</h3><p>切点、字幕和模型解释都允许修正。取样可能漏掉短镜头或短字幕；静帧不能证明完整运镜、原声或导演意图。报告会保留待核状态，帮助你区分画面证据和分析判断。</p><h3>只有视频链接</h3><p>电脑端可点击“导入公开视频”，直接获取公开直链或可公开解析的单文件视频。登录网盘、付费及受保护内容可将代取片任务交给能够访问该网站的助手。需要登录、提取码或观看权限时，使用你自己的合法访问权限。本版不承诺通用解析所有网盘和发行平台。</p><h3>修订、复核与学习库</h3><p>报告右侧“修订与复核”独立保存人工观察和字段修订，保留 AI 草稿对照。切点、字幕、动态、原声与拍法解释分别核对；播放器下方可局部切镜与合并。收藏方法时写清来源、适用条件和边界，人工复核后才能主动用于项目。左侧学习库还可整理文字、图片和 PDF 参考，分别备份学习库与项目。</p><h3>备用交接与备份</h3><p>不支持工具连接的助手仍可通过“备用交接与项目备份”接收任务包和返回分析。项目备份不包含原视频；分享报告时，需要另行提供对应原片。</p></dialog>

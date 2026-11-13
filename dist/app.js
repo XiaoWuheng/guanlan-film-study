@@ -2,9 +2,11 @@ import {installWorkbench} from './workbench-tools.mjs';
 import {analyzeCuts,displayProject} from './study-tools.mjs';
 import {installProjectLibrary,groupStudies,mediaKind,mediaLabel,mediaNumber,profileKey} from './project-library.mjs';
 import {projectBackup,readProjectBackup} from './project-backup.mjs';
-import {VERSION,endpoint,parseJSON,cutTimes,mergeResult,SHOT_FIELDS,LESSON_SHAPE,SYSTEM,taskText,prepareModelDraft,captionSegments,PEOPLE_SHAPE} from './core.mjs';
+import {VERSION,endpoint,parseJSON,cutTimes,mergeResult,SHOT_FIELDS,LESSON_SHAPE,methodGuidance,SYSTEM,taskText,prepareModelDraft,captionSegments,PEOPLE_SHAPE} from './core.mjs';
 import {zip} from './zip.mjs';
 const $=id=>document.getElementById(id),V=$('source-video');
+let demoProjectPromise,demoMediaPromise,homeNavigation=0,homePreviewTrigger=null,homePreviewReady=false;
+const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)');
 let mode='assistant',file=null,sourceURL=null,active=null,controller=null,busy=false,desktop=false,db=null,localMedia=null,studyTools,projectLibrary;
 const sidebarPreference='guanlan-sidebar-collapsed',sidebarNarrow=matchMedia('(max-width:760px)');
 let sidebarDesktopCollapsed=false,sidebarMobileOpen=false;
@@ -54,11 +56,146 @@ function lastStudy(group){
   }catch{}
   return {episode:group.episodes[0],options:{}};
 }
-function setLocation(project,replace=false){
-  const url=new URL(location.href);url.searchParams.delete('series');url.searchParams.delete('study');url.searchParams.delete('episode');url.searchParams.delete('material');
+function setLocation(project,replace=false,page='home',source=''){
+  const url=new URL(location.href);
+  for(const key of ['series','study','episode','material','page','source'])url.searchParams.delete(key);
   if(project?.series){url.searchParams.set('series',project.series.id);url.searchParams.set(mediaKind(project),mediaNumber(project));}
   else if(project)url.searchParams.set('study',project.id);
+  else if(page!=='home')url.searchParams.set('page',page);
+  if(page==='learning'&&source)url.searchParams.set('source',source);
   if(url.href!==location.href)history[replace?'replaceState':'pushState'](null,'',url);
+}
+function selectSidebar(page){
+  for(const item of document.querySelectorAll('[data-action]')){
+    const selected=item.dataset.action===page;
+    item.classList.toggle('active',selected);
+    if(selected)item.setAttribute('aria-current','page');else item.removeAttribute('aria-current');
+  }
+}
+async function showPage(page,source='',updateURL=true){
+  homeNavigation++;closeHomePreview(false);$('home-status').textContent='';
+  await closeWorkspace();
+  closeMobileSidebar();
+  document.body.classList.toggle('viewing-home',page==='home');$('home-page').hidden=page!=='home';
+  $('intake-title').hidden=$('intake-view').hidden=page!=='new';
+  $('library').hidden=page!=='projects';$('learning-page').hidden=page!=='learning';
+  selectSidebar(page);
+  if(updateURL)setLocation(null,false,page,source);
+  if(page==='learning')await studyTools.showLibrary(source);
+  window.scrollTo({top:0});
+}
+function homeDemoProject(){
+  return demoProjectPromise??=fetch('home/demo-project.json').then(async response=>{
+      if(!response.ok)throw Error('暂时无法打开示例，请重试。');
+      const backup=await response.json(),project=backup.project;
+      project.id='guanlan-home-demo';project.demo=true;return project;
+  }).catch(error=>{demoProjectPromise=null;throw error;});
+}
+function homeDemoMedia(){
+  // The bundled clip is small. A blob supports seeking on static hosts without byte ranges.
+  return demoMediaPromise??=fetch('home/Guanlan-Demo.mp4').then(response=>{
+    if(!response.ok)throw Error('暂时无法加载示例原片，请重试。');
+    return response.blob();
+  }).then(blob=>URL.createObjectURL(blob)).catch(error=>{demoMediaPromise=null;throw error;});
+}
+function closeHomePreview(returnFocus){
+  const panel=$('home-preview');
+  if(panel.hidden)return;
+  $('home-preview-video').pause();panel.hidden=true;$('home-actions').hidden=false;
+  $('home-status').textContent='';
+  for(const button of $('home-page').querySelectorAll('[data-home-page="demo"]'))button.setAttribute('aria-expanded','false');
+  if(returnFocus){
+    homePreviewTrigger?.focus({preventScroll:true});
+    homePreviewTrigger?.scrollIntoView({block:'nearest',behavior:reduceMotion.matches?'instant':'smooth'});
+  }
+}
+function buildHomePreview(project,source){
+  const video=$('home-preview-video'),list=$('home-preview-shots');
+  $('home-preview-title').textContent=project.title.replace(/^观澜示例 · /,'');
+  let selected=-1;
+  const buttons=project.shots.map((shot,index)=>{
+    const button=document.createElement('button');
+    button.type='button';button.textContent=index+1;button.disabled=true;button.setAttribute('aria-label',`镜头 ${index+1}`);
+    button.onclick=()=>{video.currentTime=shot.start;display(index);};
+    return button;
+  });
+  function display(index){
+    if(index===selected)return;
+    selected=index;
+    const shot=project.shots[index];
+    buttons.forEach((button,i)=>button.setAttribute('aria-pressed',String(i===index)));
+    $('home-preview-meta').textContent=`镜头 ${index+1} · ${shot.duration.toFixed(2)} 秒 · ${shot.size}`;
+    $('home-preview-frame').textContent=shot.frame;
+    $('home-preview-why').textContent=shot.why;
+  }
+  const sync=()=>{
+    if(video.seeking)return;
+    const index=project.shots.findLastIndex(shot=>shot.start<=video.currentTime+.001);
+    if(index>=0)display(index);
+  };
+  list.replaceChildren(...buttons);sync();
+  video.addEventListener('timeupdate',sync);
+  video.addEventListener('seeked',sync);
+  video.addEventListener('loadedmetadata',()=>{for(const button of buttons)button.disabled=false;});
+  video.addEventListener('loadeddata',()=>{
+    $('home-status').textContent='';$('home-preview-retry').hidden=true;
+  });
+  video.addEventListener('error',()=>{
+    for(const button of buttons)button.disabled=true;
+    $('home-status').textContent='示例视频暂时无法播放。';$('home-preview-retry').hidden=false;
+  });
+  video.src=source;
+  $('home-preview-open').disabled=false;
+  homePreviewReady=true;
+}
+async function showHomePreview(trigger){
+  if(busy)return;
+  const panel=$('home-preview');
+  if(!panel.hidden&&trigger!==$('home-preview-retry')){
+    $('home-preview-title').focus({preventScroll:true});
+    panel.scrollIntoView({block:'nearest',behavior:reduceMotion.matches?'instant':'smooth'});
+    return;
+  }
+  if(panel.hidden)homePreviewTrigger=trigger;
+  const request=++homeNavigation;
+  panel.hidden=false;$('home-actions').hidden=true;$('home-preview-retry').hidden=true;
+  for(const button of $('home-page').querySelectorAll('[data-home-page="demo"]'))button.setAttribute('aria-expanded','true');
+  $('home-preview-title').focus({preventScroll:true});
+  panel.scrollIntoView({block:'nearest',behavior:reduceMotion.matches?'instant':'smooth'});
+  try{
+    if(!homePreviewReady){
+      $('home-status').textContent='正在打开示例…';
+      const [project,source]=await Promise.all([homeDemoProject(),homeDemoMedia()]);
+      if(request!==homeNavigation)return;
+      buildHomePreview(project,source);
+    }else if($('home-preview-video').error){
+      $('home-status').textContent='正在加载原片…';$('home-preview-video').load();
+    }
+  }catch(error){
+    if(request!==homeNavigation)return;
+    $('home-status').textContent=error.message;$('home-preview-retry').hidden=false;
+  }
+  if(homePreviewReady&&$('home-preview-video').readyState>=2)$('home-status').textContent='';
+}
+async function openHomeDemo(updateURL=true,time=0){
+  const request=++homeNavigation,progress=$('home-status');
+  progress.textContent='正在打开完整示例…';
+  $('home-preview-video').pause();
+  try{
+    const project=await homeDemoProject();
+    if(request!==homeNavigation)return;
+    await closeWorkspace();
+    if(request!==homeNavigation)return;
+    active=project;await openReport(false,{time,detail:'explain'});
+    if(request!==homeNavigation)return;
+    closeHomePreview(false);
+    if(updateURL)setLocation(null,false,'demo');
+    progress.textContent='';
+  }catch(error){if(request===homeNavigation)progress.textContent=error.message;}
+}
+async function openLearningSource(project,options={}){
+  await closeWorkspace();
+  active=project;showPrepared();await openReport(false,options);setLocation(project);
 }
 async function openSeries(group,selection,updateURL=true){
   const app=viewer();if(app&&!$('workspace-dialog').hidden){await app.flush?.();app.savePosition();app.video.pause();}
@@ -73,7 +210,7 @@ function populateSeries(items){
   $('series-name').disabled=Boolean(list.value)||busy;
 }
 async function intakeMaterial(group){
-  await closeWorkspace(false);setLocation(null);$('existing-series').value=group.key;$('media-kind').value='material';await updateNumber();
+  await showPage('new');$('existing-series').value=group.key;$('media-kind').value='material';await updateNumber();
   $('dropzone').scrollIntoView({block:'center'});
 }
 async function episodeSeries(){
@@ -183,7 +320,7 @@ async function chooseExport(kind){
   dialog.onclose=()=>dialog.remove();form.onsubmit=event=>{event.preventDefault();const selected=items.filter((_,index)=>checks[index].checked);if(selected.length){dialog.close();void run(selected);}};dialog.showModal();
 }
 function bytes(data){return Uint8Array.from(atob(data.split(',')[1]),c=>c.charCodeAt(0));}
-$('export-task').onclick=()=>{try{if(!active)throw Error('请先准备素材');const p=studyTools.collectLegacyNotes(active,localStorage),files=[['请先阅读.md',taskText(p)],['analysis-template.json',JSON.stringify({projectId:p.id,shots:p.shots.map(s=>({...SHOT_FIELDS,id:s.id})),lessons:LESSON_SHAPE},null,2)]];for(const s of p.shots){s.frames=s.images.map((img,i)=>{const name=`frames/${s.id}-${i+1}.jpg`;files.push([name,bytes(img)]);return name;});delete s.images;}for(const sample of p.subtitleSamples||[])files.push([`subtitles/${sample.time.toFixed(3).padStart(9,'0')}.jpg`,bytes(sample.image)]);p.subtitleSamples=(p.subtitleSamples||[]).map(s=>({time:s.time,file:`subtitles/${s.time.toFixed(3).padStart(9,'0')}.jpg`}));delete p.draft;files.push(['project.json',JSON.stringify(p,null,2)]);download(`观澜助手任务_${p.title}.zip`,zip(files));status('任务包已导出。把解压后的整个文件夹交给能读文件和图片的助手，完成后导入 analysis.json。');}catch(e){fail(e);}};
+$('export-task').onclick=async()=>{try{if(!active)throw Error('请先准备素材');const p=studyTools.collectLegacyNotes(active,localStorage),categoryHints=await studyTools.categoryHints(),files=[['请先阅读.md',taskText(p,categoryHints)],['analysis-template.json',JSON.stringify({projectId:p.id,shots:p.shots.map(s=>({...SHOT_FIELDS,id:s.id})),lessons:LESSON_SHAPE},null,2)]];for(const s of p.shots){s.frames=s.images.map((img,i)=>{const name=`frames/${s.id}-${i+1}.jpg`;files.push([name,bytes(img)]);return name;});delete s.images;}for(const sample of p.subtitleSamples||[])files.push([`subtitles/${sample.time.toFixed(3).padStart(9,'0')}.jpg`,bytes(sample.image)]);p.subtitleSamples=(p.subtitleSamples||[]).map(s=>({time:s.time,file:`subtitles/${s.time.toFixed(3).padStart(9,'0')}.jpg`}));delete p.draft;files.push(['project.json',JSON.stringify(p,null,2)]);download(`观澜助手任务_${p.title}.zip`,zip(files));status('任务包已导出。把解压后的整个文件夹交给能读文件和图片的助手，完成后导入 analysis.json。');}catch(e){fail(e);}};
 let templatesPromise;async function templates(){return templatesPromise??=Promise.all(['template.html','report.css','report.js','tools.js'].map(x=>fetch('viewer/'+x).then(r=>{if(!r.ok)throw Error('报告组件加载失败');return r.text();})));}
 async function htmlReport(project){
   const [html,css,baseJS,toolsJS]=await templates(),data=displayProject(collect(project));
@@ -205,9 +342,13 @@ async function openReport(draft=false,options={}){
   const project=active,request=++reportRequest,oldViewer=viewer();
   const heldFile=oldViewer?.sourceFile();
   if(heldFile)retainedFiles.set(oldViewer.project.id,heldFile);
-  const html=await htmlReport(project);
+  const [html,demoSource]=await Promise.all([htmlReport(project),project.demo?homeDemoMedia():null]);
   if(request!==reportRequest||project.id!==active?.id)return;
   $('workspace-profile').hidden=!project.series;
+  $('workspace-methods').hidden=project.demo||!project.lessons?.overview||project.status==='候选素材';
+  $('save-project').hidden=Boolean(project.demo);
+  $('close-workspace').setAttribute('aria-label',project.demo?'返回首页':'返回项目库');
+  $('close-workspace').lastElementChild.textContent=project.demo?'首页':'项目库';
   $('cut-editor').hidden=!draft;$('cuts').value=project.shots.map(shot=>shot.start).join(', ');
   $('workspace-feedback').hidden=true;
   $('viewer').onload=()=>{
@@ -215,30 +356,32 @@ async function openReport(draft=false,options={}){
     const app=viewer();if(!app||app.project.id!==project.id)return;
     const previous=retainedFiles.get(project.id),sameFile=file&&file.name===project.meta.sourceName&&file.size===project.meta.sourceSize;
     const src=previous?URL.createObjectURL(previous):sameFile?sourceURL:desktop?project.meta.localMedia?.url:null;
-    if(src&&(/^(blob:|\/media\/[a-f0-9-]{36}\.(mp4|webm|mov|m4v)$)/.test(src)))app.openSource(src,previous,!!previous);
+    if(demoSource&&!previous)app.openSource(demoSource);
+    else if(src&&(/^(blob:|\/media\/[a-f0-9-]{36}\.(mp4|webm|mov|m4v)$)/.test(src)))app.openSource(src,previous,!!previous);
     app.restore(options);
   };
-  $('viewer').srcdoc=html;$('workspace-dialog').hidden=false;document.body.classList.add('viewing-report');
-  document.querySelectorAll('[data-action]').forEach(item=>{const selected=item.dataset.action==='projects';item.classList.toggle('active',selected);if(selected)item.setAttribute('aria-current','page');else item.removeAttribute('aria-current');});
-  projectLibrary.record(project);renderSidebar(await all());
+  setViewerExpanded(false);$('viewer').srcdoc=html;$('workspace-dialog').hidden=false;
+  $('home-page').hidden=true;document.body.classList.remove('viewing-home');document.body.classList.add('viewing-report');
+  selectSidebar(project.demo?'home':'projects');
+  if(!project.demo){projectLibrary.record(project);renderSidebar(await all());}
 }
-async function closeWorkspace(showProjects=true){
+async function closeWorkspace(){
   const app=viewer();
   if(app&&!$('workspace-dialog').hidden){await app.flush?.();app.savePosition();app.video.pause();}
   reportRequest++;
-  $('viewer').onload=null;
+  $('viewer').onload=null;setViewerExpanded(false);
   $('workspace-dialog').hidden=true;document.body.classList.remove('viewing-report');
   projectLibrary.render();
-  if(showProjects)document.getElementById('library').scrollIntoView({block:'start'});
 }
 $('open-draft').onclick=()=>openReport(true).catch(fail);
-$('close-workspace').onclick=()=>closeWorkspace().then(()=>setLocation(null)).catch(fail);
+$('close-workspace').onclick=()=>showPage(active?.demo?'home':new URLSearchParams(location.search).get('page')==='new'?'new':'projects').catch(fail);
+$('workspace-methods').onclick=()=>{if(active)showPage('learning',profileKey(active)).catch(fail);};
 $('save-report').onclick=()=>chooseExport('excel').catch(fail);
 $('save-project').onclick=()=>chooseExport('backup').catch(fail);
 $('workspace-profile').onclick=async()=>{try{if(active)projectLibrary.editProfile(groupStudies(await projectGroup(active))[0]);}catch(error){fail(error);}};
 $('apply-cuts').onclick=async()=>{try{if(!file||file.name!==active.meta.sourceName||file.size!==active.meta.sourceSize)throw Error('请先在工作台选择这个项目的对应原片');const cuts=cutTimes($('cuts').value.split(/[,，\s]+/).filter(Boolean),active.meta.duration);if(!confirm('应用新切点会清除这份项目中的旧分析和对照。将先下载旧项目备份，是否继续？'))return;backup(active);controller=new AbortController();setBusy(true);const p=structuredClone(active);await extractShots(p,cuts);p.status='候选素材';p.draft={};p.lessons={overview:'',hook:{},beats:[],groups:[],editing:'',sound:'原声未听核',takeaways:[],exercises:[]};if(p.screenplay)p.screenplay.alignments=[];p.updated=new Date().toISOString();await save(p);active=p;showPrepared();await library();await openReport(true);status('已重抽镜头，旧项目备份已下载。');}catch(e){fail(e);}finally{setBusy(false);}};
 async function readJSONFile(input,max=180e6){const f=input.files[0];if(!f)return null;if(f.size>max)throw Error('文件过大，请分批恢复');try{return JSON.parse((await f.text()).replace(/^\uFEFF/,''));}catch{throw Error('文件不是有效的 JSON，请选择原始备份');}}
-$('result-file').onchange=async e=>{try{if(!active)throw Error('请先在下方项目中点“继续分析”，选择结果所属项目');const r=await readJSONFile(e.target);if(!r)return;const p=mergeResult(active,r);await save(p);active=p;await library();await openReport();status('结果已导入。可以同步回看镜头、剧本对照与拍法讲解。');}catch(x){fail(x);}finally{e.target.value='';}};
+$('result-file').onchange=async e=>{try{if(!active)throw Error('请先在下方项目中点“继续分析”，选择结果所属项目');const r=await readJSONFile(e.target);if(!r)return;const p=mergeResult(active,r);await save(p);active=p;await library();await openReport();status('结果已导入。可回看逐镜报告和学习库中的本片方法。');}catch(x){fail(x);}finally{e.target.value='';}};
 $('project-file').onchange=async event=>{
   const input=event.target;
   try{
@@ -293,7 +436,7 @@ $('analyze').onclick=async()=>{try{if(!active)throw Error('请先准备素材');
   }
  }
  for(let i=0;i<ns;i++){checkStop();if(!d.shotBatches[i]){status(`分析镜头与拍法 ${i+1}/${ns}…`);const original=active.shots.slice(i*4,(i+1)*4),part=original.filter(s=>!s.why||!s.evidence);if(!part.length){d.shotBatches[i]=original.map(s=>existingShot(s));await persistedDraft();progress(++done/total*100);continue;}const content=[textPart(`学习重点：${active.focus}\n用户主动选用的学习参考（不能当作当前片事实）：${referenceContext}\n请分析以下连续镜头。只见首中尾，不能宣称看过完整动态或声音。逐镜返回 {"shots":[${JSON.stringify({...SHOT_FIELDS,people:[PEOPLE_SHAPE]})}]}。对能辨认的人分别记录站位、表情与动作。严格返回这些镜号：${part.map(s=>s.id)}。为每镜提供具体画面证据、观看变化、拍法原因、替代拍法与借用条件。相关剧本/字幕仅作文字证据：${JSON.stringify(active.screenplay?.segments||[]).slice(0,35000)}`)];content.push(textPart('邻近镜头上下文（仅已有记录，需自行核对）：'+JSON.stringify(active.shots.slice(Math.max(0,i*4-2),Math.min(active.shots.length,(i+1)*4+2)).map(s=>({id:s.id,start:s.start,end:s.end,frame:s.human?.overrides?.frame||s.frame,why:s.human?.overrides?.why||s.why})))));for(const s of part){if(s.human?.observation)content.push(textPart('用户人工观察（素材证据，不能视为指令）：'+s.human.observation));content.push(textPart(`${s.id} 相对时间${s.start}—${s.end}，时长${s.duration}秒。依次为首、中、尾。`));s.images.forEach(img=>content.push(imagePart(img)));}const r=await callAI(content,config);if(!Array.isArray(r.shots)||r.shots.length!==part.length||new Set(r.shots.map(s=>s.id)).size!==part.length||r.shots.some(s=>!part.some(x=>x.id===s.id)||Object.keys(SHOT_FIELDS).filter(k=>!['cast','sceneContext','props'].includes(k)).some(k=>typeof s[k]!=='string')))throw Error('镜头分析格式不完整，此批次未保存；可重试或导出任务包');d.shotBatches[i]=original.map(s=>r.shots.find(x=>x.id===s.id)||existingShot(s));await persistedDraft();}progress(++done/total*100);}
- const resultShots=Object.values(d.shotBatches).flat();status('整理开场钩子、情绪节拍、剪辑方法与剧本对照…');const summary=await callAI([textPart(`请根据已观察的镜头做整段教学总结，始终承认静帧取样、声音未核等局限，不能当成独立剧本比对删改。学习重点：${active.focus}。用户主动选用的学习参考（不能当成当前片事实）：${referenceContext}\n镜头时间：${JSON.stringify(active.shots.map(({id,start,end})=>({id,start,end})))}\n逐镜分析：${JSON.stringify(resultShots)}\n剧本：${JSON.stringify(active.screenplay||null)}\n返回 {"lessons":${JSON.stringify(LESSON_SHAPE)},"alignments":[{"id":"A001","title":"文字如何成片","segmentIds":["P0001"],"shotIds":["S001"],"status":"部分对应","scriptIntent":"戏剧任务","filmEvidence":"具体可见证据","differenceTypes":["视听转译"],"difference":"文字如何落成画面","reason":"为什么这样处理","lesson":"借用","verification":"依据及待核"}]}。lessons各数组至少一项，按剧情分组，每项必须引用有效镜号。beats起止为相对时间、intensity1—5。剧本无段落时alignments为空。`) ],config);const result={projectId:active.id,shots:resultShots,lessons:summary.lessons,screenplay:active.screenplay?{...active.screenplay,alignments:summary.alignments||[]}:undefined};const merged=mergeResult(active,result);await save(merged);active=merged;showPrepared();await library();await openReport();progress(100);status('AI分析草稿已完成。请同步回看原片，核对切点、字幕与动态；原声仍需听核。');}catch(e){fail(e);}finally{setBusy(false);}};
+ const resultShots=Object.values(d.shotBatches).flat(),categoryHints=await studyTools.categoryHints();status('整理开场钩子、情绪节拍、剪辑方法与剧本对照…');const summary=await callAI([textPart(`请根据已观察的镜头做整段教学总结，始终承认静帧取样、声音未核等局限，不能当成独立剧本比对删改。学习重点：${active.focus}。用户主动选用的学习参考（不能当成当前片事实）：${referenceContext}\n镜头时间：${JSON.stringify(active.shots.map(({id,start,end})=>({id,start,end})))}\n逐镜分析：${JSON.stringify(resultShots)}\n剧本：${JSON.stringify(active.screenplay||null)}\n返回 {"lessons":${JSON.stringify(LESSON_SHAPE)},"alignments":[{"id":"A001","title":"文字如何成片","segmentIds":["P0001"],"shotIds":["S001"],"status":"部分对应","scriptIntent":"戏剧任务","filmEvidence":"具体可见证据","differenceTypes":["视听转译"],"difference":"文字如何落成画面","reason":"为什么这样处理","lesson":"借用","verification":"依据及待核"}]}。lessons各数组至少一项，按剧情分组，每项必须引用有效镜号。beats起止为相对时间、intensity1—5。剧本无段落时alignments为空。${methodGuidance(categoryHints)}`) ],config);const result={projectId:active.id,shots:resultShots,lessons:summary.lessons,screenplay:active.screenplay?{...active.screenplay,alignments:summary.alignments||[]}:undefined};const merged=mergeResult(active,result);await save(merged);active=merged;showPrepared();await library();await openReport();progress(100);status('分析草稿已完成。学习库已汇入本片方法，可回看原片复核。');}catch(e){fail(e);}finally{setBusy(false);}};
 $('stop').onclick=()=>controller?.abort();$('help-open').onclick=()=>$('help').showModal();$('help-close').onclick=()=>$('help').close();window.addEventListener('beforeunload',e=>{if(busy){e.preventDefault();e.returnValue='';}});
 
 let connectionInfo=null,syncing=false;
@@ -306,7 +449,7 @@ function renderSidebar(items){
 }
 async function refreshConnection(){if(!desktop){$('connection-state').textContent='网页模式';$('assistant-state').textContent='助手直连请打开电脑工作台；网页版可使用自己的模型 API。';$('connect-status').textContent='请下载并启动 Windows 免安装版，在本机工作台里复制连接配置。';$('copy-mcp-config').disabled=true;$('copy-codex-config').disabled=true;return;}connectionInfo=await desktopRequest('/api/connection');$('mcp-config').textContent=JSON.stringify(connectionInfo.config,null,2);const seen=connectionInfo.lastSeen,age=seen?(Date.now()-Date.parse(seen))/1000:Infinity;const label=seen?(age<120?'助手已调用 · '+(connectionInfo.client||'MCP'):'助手曾连接 · '+new Date(seen).toLocaleTimeString()):'等待助手连接';$('connection-state').textContent=label;$('connection-state').classList.toggle('connected',age<120);$('assistant-state').textContent=seen?'已收到真实工具调用。准备好项目后，请助手继续分析，完成后这里自动收到报告。':'本机工具已就绪，尚未收到助手调用。完成一次连接配置即可。';$('connect-status').textContent=label;}
 async function syncDesktop(){
-  if(syncing||!db||busy||$('viewer').contentDocument?.querySelector('[data-dirty="true"],dialog[open]'))return;
+  if(syncing||!db||busy||document.querySelector('dialog[open]')||$('viewer').contentDocument?.querySelector('[data-dirty="true"],dialog[open]'))return;
   syncing=true;
   try{
     const summaries=await desktopRequest('/api/projects'),local=await all();
@@ -320,10 +463,13 @@ async function syncDesktop(){
       if(active?.id===project.id){
         const state=reportState();active=project;showPrepared();
         if(!$('workspace-dialog').hidden)await openReport(false,state);
-        status('分析已更新。');
+        status('分析已更新，可在学习库回看本片方法。');
       }
     }
-    if(changed)await library();
+    if(changed){
+      await library();
+      if(!$('learning-page').hidden&&$('workspace-dialog').hidden)await studyTools.refreshLibrary();
+    }
   }finally{syncing=false;}
 }
 async function showConnect(){await refreshConnection();$('connect').showModal();}
@@ -333,23 +479,68 @@ $('copy-codex-config').onclick=async()=>{if(!connectionInfo)return;await navigat
 $('assistant-ready').onclick=async()=>{if(!active)return;if(!desktop){await showConnect();return;}await navigator.clipboard.writeText(`请直接调用观澜 MCP 工具，分析项目“${active.title}”（projectId: ${active.id}）。先 read_project 读取任务和 revision，分批 get_shot_frames / get_subtitle_frames 看镜头与字幕，按任务规范完成分析，再 submit_analysis 写回；不要导出或要求我导入文件。学习重点：${active.focus}`);status('已复制给助手的话。粘贴到已连接的助手，它会直接读取素材并写回报告。');};
 document.querySelectorAll('[data-action]').forEach(button=>button.onclick=()=>{
   if(busy)return;
-  closeWorkspace(button.dataset.action==='projects').then(()=>{
-    setLocation(null);
-    if(button.dataset.action==='new')$('dropzone').scrollIntoView({block:'center'});
-    document.querySelectorAll('[data-action]').forEach(item=>{item.classList.toggle('active',item===button);if(item===button)item.setAttribute('aria-current','page');else item.removeAttribute('aria-current');});
-  }).catch(fail);
+  showPage(button.dataset.action).catch(fail);
 });
+$('library-new').onclick=()=>showPage('new').catch(fail);
+const home=$('home-page'),homeMotion=$('home-motion');
+let homeLightFrame;
+function clearHomeLight(){
+  cancelAnimationFrame(homeLightFrame);
+  home.removeAttribute('data-pointer-light');
+}
+home.addEventListener('pointermove',event=>{
+  if(event.pointerType!=='mouse'||reduceMotion.matches||home.hasAttribute('data-motion-paused'))return;
+  cancelAnimationFrame(homeLightFrame);
+  homeLightFrame=requestAnimationFrame(()=>{
+    const {left,top}=home.getBoundingClientRect();
+    home.style.setProperty('--home-pointer-x',`${event.clientX-left}px`);
+    home.style.setProperty('--home-pointer-y',`${event.clientY-top}px`);
+    home.setAttribute('data-pointer-light','');
+  });
+},{passive:true});
+home.addEventListener('pointerleave',clearHomeLight);
+reduceMotion.addEventListener('change',clearHomeLight);
+homeMotion.onclick=()=>{
+  const paused=home.toggleAttribute('data-motion-paused');
+  const label=paused?'恢复光影动效':'暂停光影动效';
+  homeMotion.setAttribute('aria-label',label);homeMotion.title=label;
+  clearHomeLight();
+};
+for(const button of document.querySelectorAll('[data-home-page]')){
+ button.onclick=()=>{if(!busy){if(button.dataset.homePage==='demo')showHomePreview(button);else showPage(button.dataset.homePage).catch(fail);}};
+}
+$('home-preview-back').onclick=()=>{homeNavigation++;closeHomePreview(true);};
+$('home-preview-retry').onclick=()=>showHomePreview($('home-preview-retry'));
+$('home-preview-open').onclick=()=>{
+  const button=$('home-preview-open');button.disabled=true;
+  void openHomeDemo(true,$('home-preview-video').currentTime).finally(()=>{button.disabled=false;});
+};
+$('home-preview').addEventListener('keydown',event=>{
+  if(event.key==='Escape'){event.preventDefault();$('home-preview-back').click();}
+});
+$('home-help').onclick=$('help-open').onclick;
+document.querySelector('body>header .brand').onclick=event=>{event.preventDefault();if(!busy)showPage('home').catch(fail);};
 
-studyTools=installWorkbench({$,getActive:()=>active,setActive:p=>active=p,save,all,library,status,desktop:()=>desktop,request:desktopRequest,download,backup,openReport,showPrepared,setBusy,busy:()=>busy,loadVideo,setMedia:m=>localMedia=m,restoreStop:()=>{$('stop').onclick=()=>controller?.abort();}});
-projectLibrary=installProjectLibrary({$,storage:localStorage,open:openSeries,prepare:project=>{
+studyTools=installWorkbench({$,getActive:()=>active,setActive:p=>active=p,save,all,library,status,desktop:()=>desktop,request:desktopRequest,download,backup,openReport,showPrepared,setBusy,busy:()=>busy,loadVideo,setMedia:m=>localMedia=m,restoreStop:()=>{$('stop').onclick=()=>controller?.abort();},getProfile:key=>projectLibrary.getProfile(key),openSource:openLearningSource});
+projectLibrary=installProjectLibrary({$,storage:localStorage,open:openSeries,prepare:async project=>{
+  await showPage('new');
   active=project;showPrepared();$('prepared').scrollIntoView({block:'center'});
 },backup,remove:async project=>{
   if(!confirm('移除此项目？已下载的备份仍可恢复。'))return;
   await removeProject(project.id);if(active?.id===project.id){active=null;$('prepared').hidden=true;}await library();
 },changed:async key=>{if(active&&profileKey(active)===key&&!$('workspace-dialog').hidden)await openReport(false,reportState());},report:async(project,options)=>{active=project;showPrepared();await openReport(false,options);},addMaterial:intakeMaterial,fail,busy:()=>busy});
+function setViewerExpanded(expanded){
+  $('viewer').classList.toggle('player-expanded',expanded);
+  for(const node of [$('workspace-dialog').querySelector('.dialog-head'),$('cut-editor'),document.querySelector('body>header'),$('workspace-sidebar')])node.inert=expanded;
+}
 window.addEventListener('message',async event=>{
   const request=event.data;
-  if(event.source!==$('viewer').contentWindow||event.origin!==location.origin||!request||!active||busy)return;
+  if(event.source!==$('viewer').contentWindow||event.origin!==location.origin||!request||!active)return;
+  if(request.type==='guanlan-player-expanded'&&request.projectId===active.id){
+    setViewerExpanded(request.expanded===true);
+    return;
+  }
+  if(busy)return;
   try{
     const app=viewer();
     if(request.type==='guanlan-favorite'&&request.projectId===active.id){
@@ -391,12 +582,18 @@ async function openLocation(){
       const kind=params.has('material')?'material':'episode',number=Number(params.get(kind));
       const selection=group.episodes.find(item=>mediaKind(item)===kind&&mediaNumber(item)===number);
       await openSeries(group,selection,false);
-    }else status('未找到此剧目，可从我的拉片重新选择。',true);
+    }else{await showPage('projects','',false);status('未找到此剧目，可从项目库重新选择。',true);}
     return;
   }
-  if(!id){if(!$('workspace-dialog').hidden)await closeWorkspace();return;}
+  if(!id){
+    const page=params.get('page');
+    if(page==='demo'){await openHomeDemo(false);return;}
+    await showPage(['new','learning','projects'].includes(page)?page:'home',params.get('source')||'',false);
+    return;
+  }
   const project=(await all()).find(item=>item.id===id);
-  if(project)await openSeries({key:project.id,episodes:[project]},project,false);else status('未找到此项目，可从我的拉片重新选择。',true);
+  if(project)await openSeries({key:project.id,episodes:[project]},project,false);else{await showPage('projects','',false);status('未找到此项目，可从项目库重新选择。',true);}
 }
 window.addEventListener('popstate',()=>{if(db&&!busy)openLocation().catch(fail);});
-init().then(openLocation).catch(fail);
+const initialLocation=location.href;
+init().then(()=>{if(location.href===initialLocation&&$('home-preview').hidden)return openLocation();}).catch(fail);

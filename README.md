@@ -6,9 +6,9 @@
 
 边看原片边拆镜头，复盘开场钩子、情绪推进和剪辑节奏。
 
-[获取 v0.4.0 源码](https://github.com/XiaoWuheng/guanlan-film-study/releases/tag/v0.4.0) · [Windows 免安装版 0.3.0](https://github.com/XiaoWuheng/guanlan-film-study/releases/tag/v0.3.0) · [在线试用 0.3](https://guanlan-film-study-jz.quirky-wolf-4804.chatgpt.site/) · [快速上手](docs/QUICKSTART.md) · [连接 AI](docs/AI-CONNECTION.md)
+[在线使用](https://guanlan-film-study-jz.quirky-wolf-4804.chatgpt.site/) · [下载 Windows 免安装版](https://github.com/XiaoWuheng/guanlan-film-study/releases/download/v0.5.0/Guanlan-Film-Study-0.5.0-Windows-x64.zip) · [v0.5.0 发布页](https://github.com/XiaoWuheng/guanlan-film-study/releases/tag/v0.5.0) · [快速上手](docs/QUICKSTART.md) · [连接 AI](docs/AI-CONNECTION.md)
 
-[v0.4.0 更新记录](CHANGELOG.md)
+[更新记录](CHANGELOG.md)
 · [MIT 开源许可](LICENSE)
 · Web / Windows
 [![Checks](https://github.com/XiaoWuheng/guanlan-film-study/actions/workflows/ci.yml/badge.svg)](https://github.com/XiaoWuheng/guanlan-film-study/actions/workflows/ci.yml)
@@ -21,7 +21,14 @@
 
 ## 看一眼
 
-![逐镜学习，收起侧栏后保留图标，数字选集，原片与时间轴同步](docs/assets/workspace.png)
+![观澜首页，渐变行书与放映光](docs/assets/home.jpg)
+
+<details>
+<summary>查看逐镜学习室</summary>
+
+![原片、镜头解释和分镜时间线](docs/assets/workspace.jpg)
+
+</details>
 
 *截图使用本项目原创图形示意素材，不包含影视片段、个人项目或密钥。它展示工具操作，不代表真实影片分析效果。*
 
@@ -38,15 +45,17 @@
 
 ## 开始使用
 
-### 运行 0.4.0
+### Windows 免安装版
 
-下载 [0.4.0 源码](https://github.com/XiaoWuheng/guanlan-film-study/releases/tag/v0.4.0)，安装 Node.js 24+ 后运行 `npm start`。打开终端显示的地址，导入视频并准备镜头。Windows 下可以按[构建说明](docs/DEVELOPMENT.md)生成免安装包。
+1. 下载 [Windows x64 ZIP](https://github.com/XiaoWuheng/guanlan-film-study/releases/download/v0.5.0/Guanlan-Film-Study-0.5.0-Windows-x64.zip) 并解压整个文件夹。
+2. 双击 `启动观澜.vbs`，浏览器会打开工作台。
+3. 点「看一段示例」试看片和切镜，或点「开始拉片」导入自己的视频。
 
-想双击启动体验，可以下载 [0.3.0 Windows 免安装版](https://github.com/XiaoWuheng/guanlan-film-study/releases/tag/v0.3.0)，解压整个文件夹后打开 `启动观澜.vbs`。AI 分析可连接自己的助手或模型 API。
+包内附带运行组件，双击即可使用。AI 分析可连接自己的助手或模型 API。源码压缩包和校验值可在 [v0.5.0 发布页](https://github.com/XiaoWuheng/guanlan-film-study/releases/tag/v0.5.0) 获取。
 
-### 网页：体验 0.3
+### 网页版
 
-打开 [观澜网页版](https://guanlan-film-study-jz.quirky-wolf-4804.chatgpt.site/)。项目保存在当前浏览器；换设备前请备份。模型 API 能否直接连接，取决于服务商是否允许浏览器请求。
+打开 [观澜网页版 v0.5.0](https://guanlan-film-study-jz.quirky-wolf-4804.chatgpt.site/)，点「看一段示例」即可体验原片与镜头同步。网页项目保存在当前浏览器，模型连接取决于服务商是否允许浏览器请求。也可按[从源码运行](#从源码运行)在本机启动。
 
 | 能力 | 网页版 | Windows 电脑端 |
 | --- | --- | --- |
@@ -60,7 +69,7 @@
 
 ### 没有影片，也能先试
 
-仓库提供一套 [原创演示素材](examples/README.md)。在“备用交接与项目备份”中恢复 `demo-project.json`，打开学习报告，再选择配套的 `Guanlan-Demo.mp4` 即可体验定位、复核、笔记与导出。
+首页内置原创短片。点镜号可跳回对应画面，进入完整拉片室后从当前位置继续看。想练习人工修订和笔记，可在「备用交接与项目备份」恢复 [原创示例项目](examples/README.md)。
 
 ## 一次拉片的流程
 
@@ -76,11 +85,11 @@
 导出 Excel / 备份项目 / 收藏导演方法与参考资料
 ```
 
-**看片与分析同屏。** 镜头目录、双语字幕、连续关键帧与原片同步。选择数字换集，收起侧栏后仍能用图标导航。窄屏可在目录、原片和分析间切换。需要校正时，可步进、局部切镜或合并下一镜。
+**看片与分析同屏。** 镜头目录、双语字幕、连续关键帧与原片同步。场景、镜头、字幕和笔记共用分镜时间线，可缩放时间轴和选择栏位。选择数字换集，收起侧栏后仍能用图标导航。需要校正时，可步进、局部切镜或合并下一镜。
 
 **随看随记。** 字幕逐条修订后，浮层、搜索、时间轴和剧本对照同步更新。片段笔记可截取当前画面并手绘标注。可修订景别、运镜、表演和拍法，保留 AI 原稿供核对。
 
-**按剧学习。** 在整剧资料中记录跨集故事单元、付费卡点和正剧与素材的对应时间，点击即可回看。项目列表支持标题检索、标签、浏览记录和收藏。导演方法可保存来源镜号、具体做法和适用条件。
+**按剧学习。** 在整剧资料中记录跨集故事单元、付费卡点和正剧与素材的对应时间，点击即可回看。项目列表支持标题检索、标签、浏览记录和收藏。学习库可按片型和主题整理导演意图、构图、机位、运镜、色彩光影、剪辑和制作方法，保存来源镜号与适用条件，支持自定义分类和导出方法论 Excel。
 
 ## AI 怎么接
 
@@ -161,7 +170,7 @@ npm run build:windows    # Windows 下生成免安装 ZIP 和 SHA256
 
 ## 许可
 
-观澜自有代码及原创演示素材采用 [MIT License](LICENSE)。发布包内 Node.js、yt-dlp 及其第三方组件分别保留原许可证，详见 [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES.md)。用户导入的影片、剧本、参考资料及模型服务不属于本项目的 MIT 授权范围。
+观澜自有代码及原创演示素材采用 [MIT License](LICENSE)。Node.js、yt-dlp 和标题所用志莽行书分别保留原许可证，详见 [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES.md)。用户导入的影片、剧本、参考资料及模型服务不属于本项目的 MIT 授权范围。
 
 ---
 

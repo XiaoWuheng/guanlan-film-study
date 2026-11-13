@@ -1,45 +1,116 @@
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>观澜 · 拉片学习</title><style>/*STYLE*/</style></head>
 <body class="report-app"><div class="report-shell">
-<header class="report-topbar"><a class="brand" href="#" aria-label="观澜拉片学习">观澜</a><div class="report-heading"><h1 id="title"></h1><p id="scope" class="muted small"></p></div><nav class="view-switch tabs" aria-label="学习视图"><button data-tab="study" class="active" aria-selected="true">逐镜学习</button><button data-tab="structure" aria-selected="false">剧情总览</button></nav><div class="header-actions"><button id="catalog-toggle" class="quiet" aria-expanded="true" aria-label="收起目录" title="收起目录">目录</button><button id="directory-open" class="quiet" aria-label="镜头目录" title="全部镜头">全部镜头</button><button id="export-md" class="quiet">导出笔记</button></div></header>
+<header class="report-topbar">
+  <a class="brand" href="#" aria-label="观澜拉片学习">观澜</a>
+  <div class="report-heading"><h1 id="title"></h1><p id="scope" class="muted small"></p></div>
+  <div class="report-actions">
+    <nav class="view-switch tabs" aria-label="学习视图"><button data-tab="study" class="active" aria-selected="true">逐镜学习</button><button data-tab="structure" aria-selected="false">剧情总览</button></nav>
+    <div class="header-actions"><button id="catalog-toggle" class="quiet" aria-expanded="true" aria-label="收起目录" title="收起目录">目录</button><button id="directory-open" class="quiet" aria-label="镜头目录" title="全部镜头">全部镜头</button><button id="export-md" class="quiet">导出笔记</button></div>
+  </div>
+</header>
 <main class="report-main">
 <section id="tab-study" class="study-layout tab-content" aria-label="逐镜学习" data-pane="player">
 <nav class="pane-tabs" aria-label="学习面板"><button data-pane-open="catalog" aria-pressed="false">目录</button><button data-pane-open="player" aria-pressed="true">原片</button><button data-pane-open="analysis" aria-pressed="false">分析</button></nav>
 <aside class="shot-catalog shot-directory" aria-label="镜头目录"><div id="episode-directory" class="episode-directory" hidden></div><div class="catalog-head"><h2>镜头 <span id="shot-count" class="muted small"></span></h2></div><input id="search" type="search" placeholder="搜索镜头" aria-label="搜索镜头"><select id="rhythm-filter" aria-label="筛选节奏作用"><option value="">全部作用</option></select><div id="shot-list" class="shot-list directory-list"></div><p id="no-results" class="empty" hidden>没有匹配镜头，清空筛选后再看。</p></aside>
 <div id="catalog-split" class="player-split catalog-split" role="separator" aria-label="调整目录宽度" aria-orientation="vertical" aria-valuemin="96" aria-valuemax="256" aria-valuenow="128" tabindex="0" title="拖动调整，双击复位"></div>
 <section class="player-column screen-column" aria-label="原片播放器">
-  <div class="screen"><video id="video" controls playsinline preload="metadata" tabindex="0"></video><div id="subtitle-overlay" hidden><span id="overlay-speaker"></span><span id="overlay-en"></span><span id="overlay-zh" class="translation"></span></div><div id="video-empty">选择对应原片</div></div>
-  <div class="file-row"><label class="file-button">原片<input id="video-file" type="file" accept="video/*" aria-label="选择原片"></label><span id="video-name" class="muted"></span><span id="clock" class="mono">00:00.00</span><button id="fullscreen" class="quiet" title="全屏播放（含悬浮字幕）" aria-label="全屏播放">⛶</button></div>
-  <p id="video-warning" role="status" class="warning" hidden></p>
-  <div class="controls">
-    <div id="episode-controls" class="control-group" aria-label="换集" hidden><button id="previous-episode" title="上一集" aria-label="上一集">‹</button><button id="next-episode" title="下一集" aria-label="下一集">›</button></div>
-    <div class="control-group" aria-label="逐镜播放"><button id="previous" title="上一镜 · A" aria-label="上一镜">←</button><button id="play-shot" aria-label="播放本镜">本镜</button><button id="next" title="下一镜 · D" aria-label="下一镜">→</button></div>
-    <label><input id="loop" type="checkbox">循环</label>
-    <details id="playback-settings" class="control-popover"><summary aria-label="播放设置" title="播放设置">设置</summary><div>
-      <label>倍速 <input id="speed" type="range" min="0.25" max="2" step="0.05" value="1" aria-label="播放速度"><output id="speed-value">1×</output></label>
-      <label>音量 <input id="volume" type="range" min="0" max="1" step="0.05" value="1" aria-label="音量"></label>
-      <label>字幕 <select id="subtitle-language" aria-label="悬浮字幕语言"><option value="both">中英</option><option value="zh">中文</option><option value="en">原文</option><option value="off">关闭</option></select></label>
-      <label>字号 <select id="subtitle-size" aria-label="字幕字号"><option value="12">小</option><option value="15" selected>中</option><option value="19">大</option></select></label>
-      <label><input id="continuous" type="checkbox">本镜之后连播</label>
-      <label><input id="auto-next" type="checkbox">播完下一集</label>
-    </div></details>
-    <button id="evidence-open" class="quiet" aria-label="起 · 中 · 末段采样" title="起 · 中 · 末段采样">采样</button>
-    <button id="ask-analysis" class="quiet" hidden>AI 分析</button>
+  <div class="screen" id="screen">
+    <div class="video-stage">
+      <video id="video" playsinline preload="metadata"></video>
+      <div id="subtitle-overlay" hidden><span id="overlay-speaker"></span><span id="overlay-en"></span><span id="overlay-zh" class="translation"></span></div>
+      <button id="video-empty" type="button">选择原片</button>
+      <p id="video-warning" role="status" class="warning" hidden></p>
+    </div>
+    <div class="player-dock" role="group" aria-label="播放控制">
+      <input id="player-position" class="player-range" type="range" min="0" step="0.01" value="0" aria-label="播放进度" disabled>
+      <div class="player-row">
+        <button id="previous-episode" class="player-icon" type="button" title="上一集" aria-label="上一集" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5v14m14-14L8 12l11 7Z"/></svg></button>
+        <button id="player-play" class="player-icon" type="button" title="播放" aria-label="播放" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path class="play-symbol" d="m8 5 11 7-11 7Z"/><path class="pause-symbol" d="M8 5v14m8-14v14"/></svg></button>
+        <button id="next-episode" class="player-icon" type="button" title="下一集" aria-label="下一集" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 5v14M5 5l11 7-11 7Z"/></svg></button>
+        <span class="player-time mono"><span id="clock">00:00</span><span class="player-duration"> / <span id="player-duration"></span></span></span>
+        <div class="player-actions">
+          <button id="caption-toggle" class="player-icon" type="button" title="显示字幕" aria-label="悬浮字幕" aria-pressed="false" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 10a2 2 0 1 0 0 4m6-4a2 2 0 1 0 0 4"/></svg></button>
+          <button id="settings-toggle" class="player-icon" type="button" title="播放设置" aria-label="播放设置" aria-controls="playback-settings" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h8m4 0h4M4 17h4m4 0h8"/><circle cx="14" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button>
+          <div id="playback-settings" class="player-settings" role="group" aria-labelledby="playback-title" hidden>
+            <h2 id="playback-title">播放设置</h2>
+            <label class="player-setting-range"><span>音量 <output id="volume-value" for="volume">100%</output></span><input id="volume" class="player-range" type="range" min="0" max="1" step="0.01" value="1" aria-label="音量"></label>
+            <label id="auto-next-setting" class="player-switch" title="播完自动播放下一集" hidden><input id="auto-next" type="checkbox" role="switch">连续播放<span aria-hidden="true"></span></label>
+            <div class="caption-languages" role="group" aria-label="字幕语言">
+              <label class="player-switch"><input id="caption-original" type="checkbox" role="switch">原文字幕<span aria-hidden="true"></span></label>
+              <label class="player-switch"><input id="caption-translation" type="checkbox" role="switch">中文字幕<span aria-hidden="true"></span></label>
+            </div>
+            <div class="caption-sizes" role="group" aria-label="字幕大小"><span>字幕大小</span><div><button type="button" data-caption-size="12" aria-pressed="false">小</button><button type="button" data-caption-size="15" aria-pressed="true">中</button><button type="button" data-caption-size="19" aria-pressed="false">大</button></div></div>
+            <label class="player-setting-range"><span>播放速度 <output id="speed-value" for="speed">1.0×</output></span><input id="speed" class="player-range" type="range" min="0.25" max="2" step="0.05" value="1" aria-label="播放速度"><span class="range-limits" aria-hidden="true"><span>0.25×</span><span>2×</span></span></label>
+            <div class="player-extra">
+              <label class="player-switch"><input id="loop" type="checkbox" role="switch">循环本镜<span aria-hidden="true"></span></label>
+              <button id="replace-video" type="button">更换原片</button><input id="video-file" type="file" accept="video/*" aria-label="选择原片">
+            </div>
+          </div>
+          <button id="fullscreen" class="player-icon" type="button" title="全屏播放" aria-label="全屏播放"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="expand-symbol" d="M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5"/><path class="shrink-symbol" d="M4 9h5V4m11 5h-5V4M9 20v-5H4m11 5v-5h5"/></svg></button>
+        </div>
+      </div>
+    </div>
   </div>
-  <details class="verification-details"><summary id="coverage" class="statusline"></summary><p id="origin" class="muted small"></p></details>
 </section>
-<div id="player-split" class="player-split" role="separator" aria-label="调整分析区宽度" aria-orientation="vertical" tabindex="0" aria-valuemin="30" aria-valuemax="61" aria-valuenow="42" title="拖动调整宽度，双击复位"></div><aside class="insight-panel detail-panel" aria-label="当前镜头学习"><div class="detail-head"><span id="detail-id" class="eyebrow"></span><button id="toggle-explanation" class="quiet" aria-label="先自己判断">先自判</button><button id="favorite-shot" class="quiet" aria-label="收藏本镜" title="收藏本镜" aria-pressed="false" hidden>☆</button></div><h2 id="detail-title"></h2><div id="detail-tags" class="detail-tags tags"></div><nav class="insight-tabs detail-tabs" aria-label="当前镜头内容"><button data-detail="explain" class="active" aria-selected="true">镜头</button><button data-detail="transcript" aria-selected="false">字幕</button><button data-detail="plot" aria-selected="false">剧情</button><button id="cue-tab" data-detail="cues" aria-selected="false" hidden>卡点</button><button data-detail="script" aria-selected="false">剧本</button><button data-detail="notes" aria-selected="false" aria-label="我的笔记">笔记</button></nav><div id="detail-explain" class="insight-content"><div id="detail-facts"></div><div id="explanation"></div></div><div id="detail-transcript" class="insight-content" hidden><input id="transcript-search" type="search" aria-label="搜索字幕" placeholder="搜索中文或英文字幕"><div id="transcript-list"></div></div><div id="detail-plot" class="insight-content" hidden></div><div id="detail-cues" class="insight-content" hidden></div><div id="detail-script" class="insight-content" hidden></div><div id="detail-notes" class="insight-content" hidden><div class="range-notes"><button id="range-add" aria-label="新增片段笔记">＋ 片段</button><div id="range-note-list"></div></div><label class="note-label" for="note">我的观察与借用想法</label><textarea id="note" rows="7" placeholder="先写看见了什么，再写为什么这样拍，以及自己的戏可以怎样借用……"></textarea><p id="note-state" class="muted small"></p><div class="note-actions footer-actions"><button id="export-json">备份笔记</button><label class="file-button quiet">恢复笔记<input id="notes-file" type="file" accept="application/json,.json"></label></div><p id="storage-warning" class="warning" hidden></p></div></aside>
+<div id="player-split" class="player-split" role="separator" aria-label="调整分析区宽度" aria-orientation="vertical" tabindex="0" aria-valuemin="30" aria-valuemax="61" aria-valuenow="42" title="拖动调整宽度，双击复位"></div>
+<aside class="insight-panel detail-panel" aria-label="影片信息">
+<nav class="insight-tabs detail-tabs" role="tablist" aria-label="影片信息切换"><button data-detail="explain" class="active">镜头</button><button data-detail="transcript">字幕</button><button data-detail="plot">剧情</button><button id="cue-tab" data-detail="cues" hidden>卡点</button><button data-detail="script">剧本</button><button data-detail="notes">笔记</button><button id="review-tab" data-detail="review" hidden>复核</button></nav>
+<div id="detail-explain" class="insight-content">
+  <div class="shot-meta-line" data-shot-field="id"><strong id="detail-id"></strong><span id="detail-time" class="mono"></span></div>
+  <div class="detail-head"><h2 id="detail-title"></h2><button id="toggle-explanation" class="quiet" type="button" aria-pressed="false">先自判</button><button id="favorite-shot" class="quiet" aria-label="收藏本镜" title="收藏本镜" aria-pressed="false" hidden>☆</button></div>
+  <div class="shot-actions" role="group" aria-label="本镜操作">
+    <div class="shot-navigation" role="group" aria-label="逐镜回看"><button id="previous" type="button" title="上一镜 · A" aria-label="上一镜">‹</button><button id="play-shot" type="button">回看本镜</button><button id="next" type="button" title="下一镜 · D" aria-label="下一镜">›</button></div>
+    <button id="evidence-open" class="quiet" type="button" title="起 · 中 · 末段采样">采样图</button><button id="ask-analysis" class="quiet" type="button" hidden>AI 分析</button>
+  </div>
+  <div id="detail-facts"></div><div id="explanation"></div>
+  <details id="verification-details" class="secondary-details"><summary>核验进度</summary><p id="coverage" class="muted small"></p><p id="origin" class="muted small"></p></details>
+</div>
+<div id="detail-transcript" class="insight-content" hidden><input id="transcript-search" type="search" aria-label="搜索字幕" placeholder="搜索中文或英文字幕"><div id="transcript-list"></div></div><div id="detail-plot" class="insight-content" hidden></div><div id="detail-cues" class="insight-content" hidden></div><div id="detail-script" class="insight-content" hidden></div><div id="detail-notes" class="insight-content" hidden><div class="range-notes"><button id="range-add" aria-label="新增片段笔记">＋ 片段</button><div id="range-note-list"></div></div><label class="note-label" for="note">我的观察与借用想法</label><textarea id="note" rows="7" placeholder="先写看见了什么，再写为什么这样拍，以及自己的戏可以怎样借用……"></textarea><p id="note-state" class="muted small"></p><div class="note-actions footer-actions"><button id="export-json">备份笔记</button><label class="file-button quiet">恢复笔记<input id="notes-file" type="file" accept="application/json,.json"></label></div><p id="storage-warning" class="warning" hidden></p></div>
+<div id="detail-review" class="insight-content review-editor" hidden></div>
+</aside>
 <section class="study-tracks" aria-label="分镜时间线">
-  <div id="track-split" class="track-split" role="separator" aria-label="调整分镜高度" aria-orientation="horizontal" tabindex="0" aria-valuemin="44" aria-valuemax="140" aria-valuenow="44" title="上下拖动，双击复位"></div>
-  <div class="track-toolbar"><button id="tracks-toggle" aria-expanded="true">分镜</button><span id="track-time" class="mono"></span><label><input id="follow" type="checkbox" checked>跟随</label><div class="track-tools"><button id="fields-open">栏位</button><button id="zoom-out" aria-label="缩小时间轴" title="缩小">−</button><output id="zoom-value">100%</output><button id="zoom-in" aria-label="放大时间轴" title="放大">+</button><button id="zoom-reset" title="复位时间轴">复位</button></div></div>
-  <div id="track-body" class="track-body"><div class="track-labels" aria-hidden="true"><span id="label-time">时间</span><span id="label-scene">场景</span><span id="label-shot">镜头</span><span id="label-subtitle">字幕</span><span id="label-note" hidden>笔记</span></div><div id="track-scroll" class="track-scroll"><div id="track-canvas" class="track-canvas"><div id="time-track" class="time-controls"><div id="time-ruler" aria-hidden="true"></div><input id="track-position" type="range" min="0" step="0.01" value="0" aria-label="原片位置"></div><div id="scene-track" class="track"></div><div id="timeline" class="track" aria-label="镜头轨"></div><div id="subtitle-track" class="track"></div><div id="note-track" class="track" hidden></div><i id="playhead" aria-hidden="true"></i></div></div></div>
-  <div id="filmstrip" class="filmstrip" aria-label="连续关键帧" hidden></div>
+  <div class="track-edge"><div id="track-split" class="track-split" role="separator" aria-label="调整分镜高度" aria-orientation="horizontal" aria-controls="track-content" tabindex="0" aria-valuemin="92" aria-valuemax="320" aria-valuenow="214" title="上下拖动，双击复位"></div><button id="tracks-toggle" type="button" aria-expanded="true" aria-controls="track-content">收起</button></div>
+  <div id="track-toolbar" class="track-toolbar">
+    <div class="track-heading"><h2>分镜</h2><span id="track-shot-count"></span></div>
+    <div class="track-tools">
+      <span id="track-time" class="mono"></span><label title="跟随播放位置"><input id="follow" type="checkbox" checked>跟随</label>
+      <div class="track-zoom" role="group" aria-label="时间轴缩放"><button id="zoom-out" aria-label="缩小时间轴" title="缩小">−</button><output id="zoom-value">100%</output><button id="zoom-in" aria-label="放大时间轴" title="放大">+</button></div>
+      <button id="zoom-reset" title="复位时间轴">重置</button><button id="fields-open" aria-haspopup="dialog" aria-expanded="false" aria-controls="fields-dialog" title="设置分镜显示栏位">栏位</button>
+    </div>
+  </div>
+  <div id="track-content">
+    <div id="track-body" class="track-body">
+      <div class="track-labels" aria-hidden="true"><span id="label-time">时间</span><span id="label-scene">场景</span><span id="label-shot">镜头</span><span id="label-subtitle">字幕</span><span id="label-note" hidden>笔记</span></div>
+      <div id="track-scroll" class="track-scroll">
+        <div id="track-canvas" class="track-canvas">
+          <div id="time-track" class="time-controls"><div id="time-ruler" aria-hidden="true"></div><input id="track-position" type="range" min="0" step="0.01" value="0" aria-label="时间轴播放位置"></div>
+          <div id="scene-track" class="track" role="group" aria-label="场景"></div>
+          <div id="timeline" class="track" role="group" aria-label="镜头"></div>
+          <div id="subtitle-track" class="track" role="group" aria-label="字幕"></div>
+          <div id="note-track" class="track" role="group" aria-label="笔记" hidden></div><i id="playhead" aria-hidden="true"></i>
+        </div>
+      </div>
+    </div>
+    <section id="filmstrip" aria-labelledby="keyframes-heading" hidden><h3 id="keyframes-heading">关键帧</h3><div id="keyframes" class="filmstrip"></div></section>
+    <p id="tracks-empty" class="empty" hidden>当前栏位已隐藏，可在「栏位」中恢复显示。</p>
+  </div>
 </section>
 </section>
 <section id="tab-structure" class="structure-layout structure-view tab-content" aria-label="全片结构" hidden><nav class="chapter-nav" aria-label="结构章节"><button data-chapter="series" id="series-tab" hidden>剧目与角色</button><button data-chapter="hook" class="active" aria-selected="true">开场钩子</button><button data-chapter="beats" aria-selected="false">情绪与节奏</button><button data-chapter="groups" aria-selected="false">镜头怎样组合</button><button data-chapter="practice" aria-selected="false">借用与练习</button></nav><div class="chapter-content"><section id="chapter-series" class="chapter-panel" hidden></section><section id="chapter-hook" class="chapter-panel"><div class="chapter-heading"><h2>观众为什么继续往下看</h2></div><p id="overview" class="lead"></p><div id="hook" class="lesson-card hook-card"></div></section><section id="chapter-beats" class="chapter-panel" hidden><div class="chapter-heading"><h2>情绪怎样蓄力，又在哪里释放</h2><p class="muted small">投入级别是分析者的主观判断，不是真实观众数据。</p></div><div id="beats" class="beats"></div><div class="two-column"><article class="lesson-card"><h3>剪辑如何推进</h3><p id="editing"></p></article><article class="lesson-card"><h3>声音与画面的关系</h3><p id="sound"></p></article></div></section><section id="chapter-groups" class="chapter-panel" hidden><div class="chapter-heading"><h2>把镜头连起来，看清一次选择</h2></div><div id="groups" class="card-grid"></div></section><section id="chapter-practice" class="chapter-panel" hidden><div class="chapter-heading"><h2>把方法带回自己的戏</h2></div><div id="takeaways" class="card-grid"></div><h3>看完后，自己做一次选择</h3><div id="exercises" class="card-grid"></div></section></div></section>
 </main></div>
 <div id="track-preview" class="track-preview" aria-hidden="true" hidden></div>
-<dialog id="fields-dialog" class="report-dialog"><form id="fields-form"><h2>显示栏位</h2><div id="field-choices" class="field-choices"></div><div class="dialog-actions"><button id="fields-reset" type="button">恢复默认</button><button type="submit">保存</button><button id="fields-cancel" type="button">取消</button></div></form></dialog>
+<dialog id="fields-dialog" class="report-dialog" aria-labelledby="fields-title">
+  <form id="fields-form">
+    <div class="fields-heading"><h2 id="fields-title">分镜显示栏位</h2><button id="fields-close" type="button" aria-label="关闭栏位设置" title="关闭">×</button></div>
+    <div class="fields-body">
+      <div class="fields-intro"><p>点击标签或下方预览切换显示，保存后生效。</p><button id="fields-all" type="button">全部显示</button></div>
+      <div id="field-choices" class="field-choices"></div>
+      <div id="field-previews" class="field-previews"></div>
+    </div>
+    <div class="fields-footer"><output id="fields-count"></output><button id="fields-reset" class="quiet" type="button">恢复默认</button><button id="fields-cancel" type="button">取消</button><button id="fields-save" type="submit">保存</button></div>
+  </form>
+</dialog>
 <dialog id="range-note-dialog" class="report-dialog"><form id="range-form"><h2>片段笔记</h2><div class="range-times"><label>起点（秒）<input id="range-start" type="number" min="0" step="0.01" required></label><label>终点（秒）<input id="range-end" type="number" min="0" step="0.01" required></label></div><label>观察与想法<textarea id="range-text" rows="4" maxlength="3000" required></textarea></label><div class="dialog-actions"><button id="range-capture" type="button">标注当前画面</button><button id="range-clear" type="button" hidden>清除标记</button><button id="range-remove-image" type="button" hidden>移除画面</button></div><canvas id="range-canvas" aria-label="片段笔记画面标注" hidden></canvas><p id="range-error" class="warning" hidden></p><div class="dialog-actions"><button type="submit">保存</button><button id="range-cancel" type="button">取消</button></div></form></dialog>
 <dialog id="directory-dialog" class="report-dialog"><div class="dialog-heading"><h2>全部镜头</h2><button id="directory-close" class="close">关闭 ×</button></div><div id="directory-grid" class="directory-grid"></div></dialog>
 <dialog id="script-dialog" class="report-dialog"><div class="dialog-heading"><h2>完整剧本与成片对照</h2><button id="script-close" class="close">关闭 ×</button></div><p id="script-meta" class="muted small"></p><p id="script-coverage" class="statusline"></p><div id="script-alignments" class="script-alignments"></div><details id="script-originals" class="script-originals"><summary>查看全部原文与定位</summary><div id="script-segments"></div></details></dialog>

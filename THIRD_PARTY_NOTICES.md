@@ -6,6 +6,7 @@
 | --- | --- | --- | --- |
 | Node.js | Windows 本机服务与 MCP 运行时 | [v24.22.1](https://nodejs.org/dist/v24.22.1/) / [源码](https://github.com/nodejs/node/tree/v24.22.1) | 发布包 `runtime/NODE-LICENSE.txt`，包含依赖声明 |
 | yt-dlp | 公开分享页的视频获取 | [2026.10.26](https://github.com/yt-dlp/yt-dlp/releases/tag/2026.10.26) / [源码](https://github.com/yt-dlp/yt-dlp/tree/2026.10.26) | 发布包 `runtime/links/LICENSE.txt` 与 `THIRD_PARTY_LICENSES.txt` |
+| 志莽行书（Zhi Mang Xing） | 首页标题所用字形的 WOFF2 子集 | [Google Fonts](https://fonts.google.com/specimen/Zhi+Mang+Xing) | [SIL OFL 1.1](dist/home/ZhiMangXing-OFL.txt) |
 
 yt-dlp 源码采用 Unlicense；其 Windows 独立程序还包含采用其他许可的第三方组件，完整声明随包保留。对应源码、构建及许可说明可从该固定版本的官方仓库、[第三方声明](https://github.com/yt-dlp/yt-dlp/blob/2026.10.26/THIRD_PARTY_LICENSES.txt)和发布页获取。运行组件的下载来源与校验值也保存在 `runtime/links/NOTICE.txt`。
 

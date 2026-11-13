@@ -38,8 +38,35 @@ export function restoreProjects(items){
   });
   saveChain=result;return result;
 }
-export async function readLearning(){try{const library=validateLearning(JSON.parse(await readFile(resolve(DATA,'learning-library.json'),'utf8')));for(const m of library.methods){try{const source=await loadProject(m.projectId);if(layoutKey(source)!==m.sourceLayout){m.reviewed=false;m.reviewedAt=null;m.sourceChanged=true;}}catch(e){if(e.code!=='ENOENT')throw e;}}return library;}catch(e){if(e.code==='ENOENT')return emptyLearning();throw e;}}
-export async function saveLearning(value){const valid=validateLearning(value);await atomic(resolve(DATA,'learning-library.json'),valid);return valid;}
+export async function readLearning(){
+ try{
+  const library=validateLearning(JSON.parse(await readFile(resolve(DATA,'learning-library.json'),'utf8')));
+  const projects=new Map();
+  for(const method of library.methods){
+   if(!method.projectId)continue;
+   if(!projects.has(method.projectId)){
+    try{projects.set(method.projectId,await loadProject(method.projectId));}
+    catch(error){if(error.code!=='ENOENT')throw error;projects.set(method.projectId,null);}
+   }
+   const source=projects.get(method.projectId);
+   if(source&&layoutKey(source)!==method.sourceLayout){method.reviewed=false;method.reviewedAt=null;method.sourceChanged=true;}
+  }
+  return library;
+ }catch(error){if(error.code==='ENOENT')return emptyLearning();throw error;}
+}
+let learningWrites=Promise.resolve();
+export function saveLearning(value){
+ const valid=validateLearning(value),path=resolve(DATA,'learning-library.json');
+ delete valid._expectedUpdated;
+ const write=learningWrites.catch(()=>{}).then(async()=>{
+  if(typeof value._expectedUpdated==='string'){
+   const current=await readFile(path,'utf8').then(JSON.parse).catch(error=>{if(error.code==='ENOENT')return {};throw error;});
+   if((current.updated||'')!==value._expectedUpdated)throw Error('学习库已在另一页面更新，请再试一次。');
+  }
+  await atomic(path,valid);return valid;
+ });
+ learningWrites=write;return write;
+}
 export async function loadProject(projectId){return JSON.parse(await readFile(resolve(DATA,id(projectId)+'.json'),'utf8'));}
 export async function listProjects(){await mkdir(DATA,{recursive:true});const files=(await readdir(DATA)).filter(f=>/^[\w-]+\.json$/.test(f)&&f!=='connection.json');const projects=[];for(const file of files){try{const p=JSON.parse(await readFile(resolve(DATA,file),'utf8'));if(p.id&&p.meta&&p.shots)projects.push(p);}catch{}}return projects.sort((a,b)=>b.updated.localeCompare(a.updated));}
 export async function deleteProject(projectId){const p=await loadProject(projectId);await mkdir(resolve(DATA,'trash'),{recursive:true});await rename(resolve(DATA,id(projectId)+'.json'),resolve(DATA,'trash',id(projectId)+'_'+Date.now()+'.json'));return p.id;}

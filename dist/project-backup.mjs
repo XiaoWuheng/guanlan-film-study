@@ -35,7 +35,7 @@ export function validateProject(project) {
   if(p.cues!=null&&(!Array.isArray(p.cues)||p.cues.some(cue=>!isObject(cue))))throw Error('卡点格式无效');
   if(p.rangeNotes!=null&&(!Array.isArray(p.rangeNotes)||p.rangeNotes.some(item=>!item||typeof item.id!=='string'||typeof item.text!=='string'||!Number.isFinite(item.start)||!Number.isFinite(item.end)||item.start<0||item.end<=item.start||item.end>meta.duration+.01||['image','baseImage'].some(key=>item[key]!=null&&(typeof item[key]!=='string'||!imagePattern.test(item[key])||item[key].length>600000)))))throw Error('片段笔记格式无效');
   p.lessons??={};
-  if(!isObject(p.lessons)||['beats','groups','takeaways','exercises'].some(key=>p.lessons[key]!=null&&(!Array.isArray(p.lessons[key])||p.lessons[key].some(item=>!isObject(item)||(item.shotIds!=null&&!Array.isArray(item.shotIds))))))throw Error('分析内容格式无效');
+  if(!isObject(p.lessons)||['beats','groups','takeaways','exercises','methods'].some(key=>p.lessons[key]!=null&&(!Array.isArray(p.lessons[key])||p.lessons[key].some(item=>!isObject(item)||(item.shotIds!=null&&!Array.isArray(item.shotIds))))))throw Error('分析内容格式无效');
   if(typeof p.updated!=='string')p.updated=new Date().toISOString();
   delete p._expectedUpdated;
   return p;

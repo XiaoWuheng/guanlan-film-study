@@ -1,6 +1,6 @@
 {
   "name": "guanlan-film-study",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Local-first shot-by-shot film study with AI assistance, human review and Excel export.",
   "type": "module",
   "license": "MIT",

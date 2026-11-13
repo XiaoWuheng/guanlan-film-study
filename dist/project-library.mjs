@@ -108,7 +108,7 @@ export function installProjectLibrary({$,storage,open,prepare,backup,remove,chan
     const chosen=groups.filter(group=>{
       const profile=getProfile(group.key),labels=tags(profile);
       return (!search||[group.title,group.key,profile.type,profile.language,...labels].join(' ').toLocaleLowerCase().includes(search))
-        &&(!tag||labels.includes(tag))&&(!status||group.episodes.some(project=>project.status===status))
+        &&(!tag||labels.includes(tag))&&(!status||group.episodes.some(project=>status==='已有分析'?Boolean(project.lessons?.overview)&&project.status!=='候选素材':project.status===status))
         &&(tab!=='recent'||data.recent[group.key])&&(tab!=='saved'||data.saved[group.key]);
     });
     chosen.sort((a,b)=>{
