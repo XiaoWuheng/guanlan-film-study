@@ -1,0 +1,48 @@
+name: Publish Guanlan v0.5.0
+on:
+  push:
+    branches: [release/guanlan-v0.5.0-package]
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: windows-latest
+    timeout-minutes: 12
+    env:
+      RELEASE_COMMIT: 346b579298cb0d8f305aabd5680d3965b0245843
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Test and package the exact release source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $stage = Join-Path $env:RUNNER_TEMP 'guanlan-v0.5.0'
+          $sourceArchive = Join-Path $env:RUNNER_TEMP 'guanlan-v0.5.0-source.tar'
+          New-Item -ItemType Directory -Path $stage | Out-Null
+          git archive --format=tar -o $sourceArchive $env:RELEASE_COMMIT
+          tar.exe -xf $sourceArchive -C $stage
+          Set-Location -LiteralPath $stage
+          node --test 'tests/*.test.mjs'
+          node scripts/check-source.mjs
+          node scripts/fetch-runtime.mjs
+          & .\runtime\node.exe scripts/build-windows.mjs
+      - name: Publish the official GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $zip = Join-Path $env:RUNNER_TEMP 'guanlan-v0.5.0/releases/Guanlan-Film-Study-0.5.0-Windows-x64.zip'
+          $checksum = [IO.File]::ReadAllText($zip+'.sha256').Split(' ')[0]
+          $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash.ToLowerInvariant()
+          if ($checksum -cne $actual) { throw 'Windows package checksum does not match.' }
+          $notes = Join-Path $env:GITHUB_WORKSPACE '.github/guanlan-v0.5.0-notes.md'
+          gh release create v0.5.0 $zip ($zip+'.sha256') --repo $env:GITHUB_REPOSITORY --target $env:RELEASE_COMMIT --title '观澜拉片学习室 v0.5.0 · 动态首页与导演方法库' --notes-file $notes --latest
