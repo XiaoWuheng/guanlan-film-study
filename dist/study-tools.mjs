@@ -1,4 +1,4 @@
-export const STUDY_FIELDS={frame:'画面内容',evidence:'可见证据',size:'景别',camera:'运镜',performance:'表演与调度',onscreenText:'字幕与画内文字',rhythm:'节奏作用',viewerChange:'观看变化',why:'为什么这样拍',alternative:'替代拍法',transfer:'借用方法',limits:'适用边界',audio:'人工声音记录'};
+export const STUDY_FIELDS={frame:'画面',evidence:'可见证据',sceneContext:'场景',cast:'人物外观与站位',props:'道具',size:'景别',angle:'机位',camera:'运镜',subjectMotion:'主体动作',performance:'表演与调度',lighting:'光影与构图',onscreenText:'画内文字',rhythm:'节奏作用',viewerChange:'观看变化',why:'为什么这样拍',alternative:'替代拍法',transfer:'借用方法',limits:'适用边界',audio:'人工声音记录'};
 export const REVIEW_LABELS={boundary:'切点',subtitle:'字幕',motion:'完整动态',sound:'原声',interpretation:'拍法解释'};
 const copy=x=>structuredClone(x),now=()=>new Date().toISOString();
 export const layoutKey=p=>JSON.stringify([p.id,p.meta.sourceStart,p.meta.duration,p.shots.map(s=>[s.id,s.start,s.end])]);
@@ -7,14 +7,56 @@ export function reviewStamp(p,s,kind){const human=s.human||{},base=[p.id,p.meta.
 export function reviewed(p,s,kind){const saved=s.human?.reviews?.[kind];if(saved)return saved.stamp===reviewStamp(p,s,kind);return kind==='boundary'&&!!s.boundaryVerified;}
 export function cleanHuman(input={}){const human={observation:String(input.observation||'').slice(0,16000),overrides:{},reviews:{},noAudio:!!input.noAudio,notesMigrated:true,updated:now()};for(const k of Object.keys(STUDY_FIELDS))if(typeof input.overrides?.[k]==='string'&&input.overrides[k].trim())human.overrides[k]=input.overrides[k].trim().slice(0,16000);return human;}
 export function updateHuman(project,shotId,input,checked={}){const p=copy(project),s=p.shots.find(x=>x.id===shotId);if(!s)throw Error('镜头已变更，请重新打开');s.human=cleanHuman(input);for(const k of Object.keys(REVIEW_LABELS)){if(!checked[k])continue;if(k==='sound'&&!s.human.noAudio&&!s.human.overrides.audio)throw Error('勾选原声已核前，请记录实际听到的内容，或确认原片没有音轨');s.human.reviews[k]={stamp:reviewStamp(p,s,k),at:now()};}s.boundaryVerified=!!checked.boundary;p.updated=now();return p;}
-export function displayProject(project){const p=copy(project);for(const s of p.shots){const raw=copy(s);s.aiSuggestion=Object.fromEntries(Object.keys(STUDY_FIELDS).map(k=>[k,raw[k]||'']));Object.assign(s,s.human?.overrides||{});s.reviewState=Object.fromEntries(Object.keys(REVIEW_LABELS).map(k=>[k,reviewed(project,raw,k)]));s.boundaryVerified=s.reviewState.boundary;if(s.reviewState.sound){s.audioStatus=s.human?.noAudio?'无音轨':'已听核';s.audio=s.human?.noAudio?'人工确认原片无音轨':s.human?.overrides?.audio||s.audio;}else if(s.human?.overrides?.audio){s.audioStatus='人工记录，待复核';}if(s.reviewState.motion)s.motionStatus='已人工回看完整动态';}return p;}
-export function collectLegacyNotes(project,storage){const p=copy(project);try{const notes=JSON.parse(storage?.getItem(`guanlan-study:${p.id}`)||'{}');for(const s of p.shots){const value=notes[`${s.id}@${s.start.toFixed(4)}-${s.end.toFixed(4)}`];if(typeof value==='string'&&value.trim()&&!s.human?.notesMigrated)s.human={...(s.human||{}),observation:value,notesMigrated:true};}}catch{}return p;}
-function clearAffected(s){for(const k of Object.keys(STUDY_FIELDS))s[k]='';s.angle='';s.subjectMotion='';s.lighting='';s.motionEvidence='';s.images=[];s.frames=[];s.boundaryVerified=false;s.motionStatus='切点调整，待重新观察';s.audioStatus='未听核';s.confidence='镜头范围已变，待重新分析';s.human={observation:'',overrides:{},reviews:{}};s.boundary='人工调整候选';return s;}
+export function displayProject(project){const p=copy(project);for(const s of p.shots){const raw=copy(s);s.aiSuggestion=Object.fromEntries(Object.keys(STUDY_FIELDS).map(k=>[k,raw[k]||'']));Object.assign(s,s.human?.overrides||{});s.reviewState=Object.fromEntries(Object.keys(REVIEW_LABELS).map(k=>[k,reviewed(project,raw,k)]));s.boundaryVerified=s.reviewState.boundary;if(s.reviewState.sound){s.audioStatus=s.human?.noAudio?'无音轨':'已听核';s.audio=s.human?.noAudio?'人工确认原片无音轨':s.human?.overrides?.audio||s.audio;}else if(s.human?.overrides?.audio){s.audioStatus='人工记录，待复核';}if(s.reviewState.motion)s.motionStatus='已人工回看完整动态';}if(p.screenplay)p.screenplay.segments=p.screenplay.segments.map(segment=>applySubtitleEdit(segment,p.subtitleEdits?.[segment.id]));return p;}
+export function applySubtitleEdit(segment,edit){
+ if(!edit)return segment;
+ const {text,translation,speaker}=edit;
+ return {...segment,originalText:segment.text,originalTranslation:segment.translation,text,translation,speaker,recognitionStatus:edit.recognitionStatus||'人工修订'};
+}
+export function updateSubtitle(project,id,edit){
+ const segment=project.screenplay?.segments.find(item=>item.id===id);
+ if(!segment||!Number.isFinite(segment.start)||!Number.isFinite(segment.end))throw Error('找不到对应的时间字幕');
+ const next=copy(project);next.subtitleEdits??={};
+ if(edit===null){delete next.subtitleEdits[id];next.updated=now();return next;}
+ const data={text:String(edit.text||'').trim().slice(0,3000),translation:String(edit.translation||'').trim().slice(0,3000),speaker:String(edit.speaker||'').trim().slice(0,160)};
+ if(!data.text)throw Error('请填写字幕原文');
+ if(data.text!==segment.text&&data.translation===(segment.translation||'')&&data.translation)data.recognitionStatus='原文已修订，译文待核';
+ next.subtitleEdits[id]=data;next.updated=now();
+ return next;
+}
+export function collectLegacyNotes(project,storage){
+ const p=copy(project);
+ try{
+   const notes=JSON.parse(storage?.getItem(`guanlan-study:${p.id}`)||'{}');
+   for(const shot of p.shots){
+     const value=notes[`${shot.id}@${shot.start.toFixed(4)}-${shot.end.toFixed(4)}`];
+     const current=typeof value==='string'?value:value?.text;
+     if(typeof current==='string'&&(typeof value==='object'||!shot.human?.notesMigrated||!shot.human?.observation))shot.human={...shot.human,observation:current,notesMigrated:true};
+   }
+   const ranges=JSON.parse(storage?.getItem(`guanlan-study:${p.id}:ranges`)||'null');if(Array.isArray(ranges))p.rangeNotes=ranges;
+ }catch{}
+ return p;
+}
+export function restoreLegacyNotes(project,storage){
+ const key=`guanlan-study:${project.id}`;
+ try{
+  const notes=Object.fromEntries(project.shots.filter(shot=>shot.human?.observation).map(shot=>[`${shot.id}@${shot.start.toFixed(4)}-${shot.end.toFixed(4)}`,shot.human.observation]));
+  storage.setItem(key,JSON.stringify(notes));storage.setItem(key+':ranges',JSON.stringify(project.rangeNotes||[]));
+ }catch{}
+}
+function clearAffected(s){for(const k of Object.keys(STUDY_FIELDS))s[k]='';s.people=[];s.motionEvidence='';s.images=[];s.frames=[];s.sampleTimes=[];s.boundaryVerified=false;s.motionStatus='切点调整，待重新观察';s.audioStatus='未听核';s.confidence='镜头范围已变，待重新分析';s.human={observation:'',overrides:{},reviews:{}};s.boundary='人工调整候选';return s;}
 export function editCuts(project,{type,shotId,time}){const p=copy(project),index=p.shots.findIndex(s=>s.id===shotId),affected=[],removed=[];if(index<0)throw Error('镜头已变更');const s=p.shots[index];const stamp=now();p.cutHistory??=[];
  if(type==='split'){if(p.shots.length>=500)throw Error('最多500镜，请分段研究');if(!Number.isFinite(time)||time<=s.start+.04||time>=s.end-.04)throw Error('请把播放头放在本镜内部，距首尾至少0.04秒');const nextId='S'+String(Math.max(0,...p.shots.map(s=>Number(s.id.replace(/^S/,''))||0))+1).padStart(3,'0');p.cutHistory.push({at:stamp,type,shots:[copy(s)]});const end=s.end,newShot=clearAffected({...copy(s),id:nextId,start:time,end,duration:end-time});s.end=time;s.duration=time-s.start;clearAffected(s);p.shots.splice(index+1,0,newShot);affected.push(s.id,nextId);}
  else if(type==='merge'){const next=p.shots[index+1];if(!next)throw Error('已经是最后一镜');p.cutHistory.push({at:stamp,type,shots:[copy(s),copy(next)]});s.end=next.end;s.duration=s.end-s.start;clearAffected(s);p.shots.splice(index+1,1);affected.push(s.id);removed.push(next.id);}
  else throw Error('未知镜头操作');
  p.cutHistory=p.cutHistory.slice(-10);const changed=new Set([...affected,...removed]);for(const group of ['beats','groups','takeaways','exercises'])for(const x of p.lessons?.[group]||[])if(x.shotIds?.some(id=>changed.has(id))){x.needsReview=true;x.shotIds=x.shotIds.filter(id=>!removed.includes(id));x.limits=[x.limits,'镜头范围已调整，本条关联与解释待重新核对。'].filter(Boolean).join('\n');}const hook=p.lessons?.hook;if(hook?.shotIds?.some(id=>changed.has(id))){hook.needsReview=true;hook.shotIds=hook.shotIds.filter(id=>!removed.includes(id));hook.limits=[hook.limits,'镜头范围已调整，待重新核对。'].filter(Boolean).join('\n');}for(const a of p.screenplay?.alignments||[])if(a.shotIds?.some(id=>changed.has(id))){a.shotIds=a.shotIds.filter(id=>!removed.includes(id));a.status='待核';a.verification='镜头范围已调整，请重新核对本组字幕或剧本关联。';}
+ for(const cue of p.cues||[]){
+   if(cue.episode!==(p.series?.episode||1)||!changed.has(cue.shotId))continue;
+   const old=project.shots.find(shot=>shot.id===cue.shotId);
+   cue.time=Number.isFinite(cue.time)?cue.time:old?.start;
+   const match=p.shots.find(shot=>shot.start<=cue.time&&cue.time<shot.end);
+   cue.shotId=match?.id||null;cue.needsReview=true;
+ }
  p.draft={...(p.draft||{}),shotBatches:{}};p.updated=stamp;p.meta.coverage='局部镜头已调整；受影响镜头与结构关联待重新核对，其他记录保留';return {project:p,affected,selected:s.id};}
 export function analyzeCuts(samples,{minimum=.18,minSeconds=.4,ratio=2.1}={}){const out=[];for(let i=1;i<samples.length;i++){const {time,score}=samples[i];if(!Number.isFinite(time)||!Number.isFinite(score)||score<minimum)continue;const nearby=samples.slice(Math.max(1,i-2),Math.min(samples.length,i+3)).filter((_,j)=>j+Math.max(1,i-2)!==i).map(x=>x.score).filter(Number.isFinite);const baseline=nearby.reduce((a,b)=>a+b,0)/Math.max(1,nearby.length),peak=score/Math.max(.025,baseline);if(peak<ratio&&!(score>=.34&&peak>=1.35))continue;if(out.length&&time-out.at(-1).time<minSeconds){if(score>out.at(-1).score)out.pop();else continue;}out.push({time,score,priority:peak<2.6||score<.22?'优先回看':'待回看',reason:'相邻画面变化峰值；不是逐帧精确切点'});}return out;}
 export const emptyLearning=()=>({version:1,methods:[],resources:[],updated:''});

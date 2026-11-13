@@ -1,7 +1,7 @@
 import https from 'node:https';
 import dns from 'node:dns/promises';
 import {isIP} from 'node:net';
-import {mkdir,open,stat,readFile,readdir,rm,rename,access} from 'node:fs/promises';
+import {mkdir,open,stat,readFile,readdir,rm,rename,access,unlink} from 'node:fs/promises';
 import {resolve,extname,basename,join} from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {spawn} from 'node:child_process';
@@ -16,3 +16,18 @@ export async function importVideoLink(value,{signal}={}){signal=AbortSignal.any(
  const size=(await stat(result.file)).size;if(size>LIMIT)throw Error('视频超过512MB');const id=randomUUID(),ext=extname(result.file),name=result.title.replace(/[\x00-\x1f<>:"/\\|?*]/g,' ').trim().slice(0,100)+ext;await rename(result.file,resolve(DATA,'media',id+ext));await import('node:fs/promises').then(fs=>fs.writeFile(resolve(DATA,'media',id+'.json'),JSON.stringify({name,size,ext,source:raw})));return {url:'/media/'+id+ext,name,size,mime:ext==='.webm'?'video/webm':ext==='.mov'?'video/quicktime':'video/mp4'};
  }finally{await rm(folder,{recursive:true,force:true});}}
 export async function mediaFile(pathname){const match=/^\/media\/([a-f0-9-]{36})\.(mp4|webm|mov|m4v)$/.exec(pathname);if(!match)throw Error('无效视频地址');const file=resolve(DATA,'media',match[1]+'.'+match[2]);const info=await stat(file);return {file,size:info.size,mime:match[2]==='webm'?'video/webm':match[2]==='mov'?'video/quicktime':'video/mp4'};}
+
+export async function cacheLocalMedia(stream,extension,length){
+ if(!['mp4','webm','mov','m4v'].includes(extension)||!Number.isSafeInteger(length)||length<1)throw Error('原片格式或大小无效');
+ const folder=resolve(DATA,'media'),id=randomUUID(),file=resolve(folder,id+'.'+extension),temporary=file+'.incoming';
+ await mkdir(folder,{recursive:true});
+ const handle=await open(temporary,'wx');
+ try{
+   let size=0;
+   try{for await(const chunk of stream){size+=chunk.length;if(size>length)throw Error('原片缓存大小不符');await handle.writeFile(chunk);}}
+   finally{await handle.close();}
+   if(size!==length)throw Error('原片缓存未完成');
+   await rename(temporary,file);
+   return {url:'/media/'+id+'.'+extension,size};
+ }finally{await unlink(temporary).catch(()=>{});}
+}

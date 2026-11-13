@@ -1,5 +1,6 @@
 import {STUDY_FIELDS,REVIEW_LABELS} from './study-tools.mjs';
 import {zip} from './zip.mjs';
+import {mediaKind,mediaLabel,mediaNumber,paywallLabels} from './project-library.mjs';
 const xml=v=>String(v??'').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
 export function columnName(i){let name='';for(i++;i;i=Math.floor((i-1)/26))name=String.fromCharCode(65+(i-1)%26)+name;return name;}
 const noteKey=s=>`${s.id}@${s.start.toFixed(4)}-${s.end.toFixed(4)}`;
@@ -23,14 +24,24 @@ export function reportWorkbookModel(p,notes={}){
  for(const g of L.groups||[])analysisRows.push(['镜头组合',g.title,(g.shotIds||[]).join('、'),g.evidence,join(g.reason,g.alternative),g.transfer,g.limits]);
  for(const t of L.takeaways||[])analysisRows.push(['借用方法',t.title,(t.shotIds||[]).join('、'),t.method,t.how,t.when,t.limits]);
  for(const e of L.exercises||[])analysisRows.push(['动手练习',e.title,(e.shotIds||[]).join('、'),e.question,e.hint,'','']);
+ if(p.series){
+  analysisRows.push(['剧目','前两集故事前提','',p.series.premise,p.series.handoff,'',p.series.scope]);
+  for(const [name,appearance,role] of p.series.characters||[])analysisRows.push(['角色',name,'',appearance,role,'','']);
+ }
+ for(const c of p.cues||[])analysisRows.push(['卡点',c.label,`第${c.episode}集 ${c.shotId}`,c.title,'','','']);
+ for(const n of p.rangeNotes||[])analysisRows.push(['片段笔记','我的观察',`${n.start.toFixed(2)}–${n.end.toFixed(2)} 秒`,n.text,'','','']);
  const analysis=sheet('全片分析',['类型','主题','关联镜号','观察或问题','解释或提示','借用方法或适用情境','局限'],[18,34,30,72,82,65,60],analysisRows,{freezeColumns:2,minRowHeight:110});
- const beats=sheet('情绪节拍',['节拍','起点 秒','终点 秒','时长 秒','关联镜号','发生了什么变化','推测观看效果','主观投入 1至5','情绪方向'],[32,12,12,12,32,68,68,20,25],(L.beats||[]).map((b,i)=>[b.title,num(b.start),num(b.end),Number.isFinite(b.start)&&Number.isFinite(b.end)?{formula:`C${i+6}-B${i+6}`,value:b.end-b.start}:null,(b.shotIds||[]).join('、'),b.observation,b.effect,num(b.intensity),b.valence]),{freezeColumns:1,numericColumns:[1,2,3],integerColumns:[7],minRowHeight:100});
+ const beats=sheet('情绪节拍',['节拍','起点 秒','终点 秒','时长 秒','关联镜号','发生了什么变化','推测观看效果','主观投入 1至5','情绪方向','戏剧任务','停在哪里'],[32,12,12,12,32,68,68,20,25,60,60],(L.beats||[]).map((b,i)=>[b.title,num(b.start),num(b.end),Number.isFinite(b.start)&&Number.isFinite(b.end)?{formula:`C${i+6}-B${i+6}`,value:b.end-b.start}:null,(b.shotIds||[]).join('、'),b.observation,b.effect,num(b.intensity),b.valence,b.objective,b.ending]),{freezeColumns:1,numericColumns:[1,2,3],integerColumns:[7],minRowHeight:100});
  const segmentMap=new Map((S?.segments||[]).map(s=>[s.id,s]));
  const alignments=sheet('剧本对照',['对照组','主题','关联镜号','原文段号','剧本或字幕原文','文字的戏剧任务','成片依据','文字的视听实现','为什么这样处理','借用方法','对应状态','核验说明'],[15,36,32,28,80,65,70,65,75,65,22,75],(S?.alignments||[]).map(a=>[a.id,a.title,(a.shotIds||[]).join('、'),(a.segmentIds||[]).join('、'),(a.segmentIds||[]).map(id=>{const s=segmentMap.get(id);return s?`${id} ${s.locator||''}\n${s.text}`:id;}).join('\n\n'),a.scriptIntent,a.filmEvidence,join((a.differenceTypes||[]).join('、'),a.difference),a.reason,a.lesson,a.status,a.verification]),{freezeColumns:2,minRowHeight:140});
- const originals=sheet('剧本原文',['段号','原文定位','原文','近似起点 秒','近似终点 秒','说话者','文本类型','识别状态'],[15,58,88,16,16,22,24,50],(S?.segments||[]).map(s=>[s.id,s.locator,s.text,num(s.start),num(s.end),s.speaker||'未注明',s.kind||'',s.recognitionStatus||S?.recognitionStatus||'待核']),{freezeColumns:1,numericColumns:[3,4],minRowHeight:60});
+ const originals=sheet('剧本原文',['段号','原文定位','英文原文','近似起点 秒','近似终点 秒','说话者','文本类型','识别状态','中文译意'],[15,38,68,16,16,22,24,38,65],(S?.segments||[]).map(s=>[s.id,s.locator,s.text,num(s.start),num(s.end),s.speaker||'未注明',s.kind||'',s.recognitionStatus||S?.recognitionStatus||'待核',s.translation||'']),{freezeColumns:1,numericColumns:[3,4],minRowHeight:60});
  const last=shots.length+5,metaRows=[['项目名称',p.title],['原片文件名',p.meta.sourceName],['研究范围',p.meta.scope||'用户选定范围'],['原片偏移 秒',offset],['研究时长 秒',num(p.meta.duration)],['镜头数量',{formula:`COUNTA('逐镜表'!A6:A${last})`,value:shots.length}],['镜长合计 秒',{formula:`SUM('逐镜表'!D6:D${last})`,value:shots.reduce((a,s)=>a+s.end-s.start,0)}],['平均镜长 秒',{formula:`AVERAGE('逐镜表'!D6:D${last})`,value:shots.reduce((a,s)=>a+s.end-s.start,0)/shots.length}],['数据覆盖',p.meta.coverage||'分析草稿'],['内容来源',p.meta.origin||'用户提供视频与已有分析'],['剧本来源',S?join(S.title,S.sourceType==='burned-subtitles'?'视频烧录字幕作为字幕剧本':'用户提供的剧本',S.version,S.origin):'未接入剧本或字幕'],['字幕识别与对应',S?.recognitionStatus||'以各行状态为准'],['时间单位','逐镜表和情绪节拍以研究起点为0；拍法详解显示原片时间，单位为秒。'],['使用方法','逐镜表固定镜号与时间列，可横向查看完整分析；标题行可筛选；我的学习笔记列可直接编辑。'],['文件性质','这是静态 Excel 文档，截图已嵌入。原视频和 API Key 不在文件内，播放与同步高亮在观澜工具中使用。'],['核验状态','画面事实、功能解释与创作建议分开阅读。未听原声不由字幕冒称听核，未确认动态不由静帧冒称已核。'],['笔记范围','包含导出时当前浏览器保存的这个项目的学习笔记；Excel 中继续编辑的笔记不会自动写回工作台。']];
  const guide=sheet('使用与范围',['项目','内容'],[28,115],metaRows,{minRowHeight:30,freezeColumns:0});
  const comparison=sheet('人工与AI对照',['镜号','字段','既有分析 / AI 草稿','人工修订','人工观察'],[12,28,90,90,80],shots.flatMap(s=>Object.entries(STUDY_FIELDS).map(([k,label])=>[s.id,label,s.aiSuggestion?.[k]??s[k]??'',s.human?.overrides?.[k]||'',k==='frame'?s.human?.observation||'':''])),{freezeColumns:2,minRowHeight:50});const model={title:p.title,sheets:[shotsSheet,detail,analysis,beats,alignments,originals,guide,comparison]};
+ const peopleRows=shots.flatMap(shot=>Array.isArray(shot.people)?shot.people.map(person=>[shot.id,shot.sceneContext,shot.cast,shot.props,person.name,person.look,person.face,person.action]):[]);
+ if(peopleRows.length)model.sheets.push(sheet('人物与场景',['镜号','场景','人物外观与站位','道具','人物','外观','脸部证据','动作证据'],[12,25,36,28,20,37,35,40],peopleRows,{freezeColumns:1,minRowHeight:65}));
+ const annotations=(p.rangeNotes||[]).filter(note=>note.image);
+ if(annotations.length)model.sheets.push(sheet('画面笔记',['起点 秒','终点 秒','观察','画面时间 秒','标注画面'],[14,14,65,16,26],annotations.map(note=>[note.start,note.end,note.text,note.imageTime,'']),{imageColumns:[4],minRowHeight:132,images:annotations.map((note,i)=>({row:i+5,col:4,dataUrl:note.image,alt:'片段笔记画面'}))}));
  for(const s of model.sheets){s.title=`观澜 ${p.title} ${s.name}`;s.context=s.name==='逐镜表'?`共 ${shots.length} 镜；按行顺序学习，镜号为稳定编号；起止时间相对研究起点，单位秒。起中末段采样图已嵌入（镜内15%、50%、85%位置），原片 ${p.meta.sourceName||''}。`:s.name==='剧本原文'||s.name==='剧本对照'?join(S?.title,S?.version,S?.recognitionStatus)||'本项目尚未接入剧本或字幕。':s.name==='情绪节拍'?'投入级别是分析者的主观判断，不是真实观众数据。':'记录已有分析与核验状态，空缺内容不作补造。';}
  return model;
 }
@@ -39,7 +50,40 @@ export function imageDimensions(bytes){if(bytes[0]===137&&bytes[1]===80){const v
 function dataCell(value,ref,style){if(value&&typeof value==='object'&&'formula'in value)return`<c r="${ref}" s="${style}"><f>${xml(value.formula)}</f><v>${value.value}</v></c>`;if(typeof value==='number'&&Number.isFinite(value))return`<c r="${ref}" s="${style}"><v>${value}</v></c>`;if(value&&typeof value==='object'&&'text'in value)value=value.text;return`<c r="${ref}" s="${style}" t="inlineStr"><is><t xml:space="preserve">${xml(value)}</t></is></c>`;}
 function rowHeight(s,row){let lines=1;for(let i=0;i<row.length;i++){if(s.imageColumns?.includes(i))continue;const text=typeof row[i]==='object'?row[i]?.text||'':String(row[i]??''),capacity=Math.max(6,(s.widths[i]||20)*.8);const n=text.split('\n').reduce((n,line)=>n+Math.max(1,Math.ceil([...line].reduce((a,c)=>a+(c.charCodeAt(0)>255?2:1),0)/capacity)),0);lines=Math.max(lines,n);}return Math.min(409,Math.max(s.minRowHeight||30,lines*15+14));}
 const styles=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="1"><numFmt numFmtId="164" formatCode="0.00"/></numFmts><fonts count="4"><font><sz val="11"/><name val="Arial"/><color rgb="FF20292D"/></font><font><b/><sz val="16"/><name val="Arial"/><color rgb="FF000000"/></font><font><b/><sz val="11"/><name val="Arial"/><color rgb="FFFFFFFF"/></font><font><i/><sz val="11"/><name val="Arial"/><color rgb="FF52636B"/></font></fonts><fills count="6"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF243D48"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF2F6F8"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFF5D7"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFFFFF"/></patternFill></fill></fills><borders count="2"><border/><border><bottom style="thin"><color rgb="FFD9E1E5"/></bottom></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="12"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0"><alignment vertical="center"/></xf><xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0"><alignment vertical="center" wrapText="0"/></xf><xf numFmtId="0" fontId="2" fillId="2" borderId="0" xfId="0"><alignment horizontal="center" vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="0" fillId="5" borderId="1" xfId="0"><alignment vertical="top" wrapText="1"/></xf><xf numFmtId="0" fontId="0" fillId="3" borderId="1" xfId="0"><alignment vertical="top" wrapText="1"/></xf><xf numFmtId="164" fontId="0" fillId="5" borderId="1" xfId="0"><alignment horizontal="right" vertical="center"/></xf><xf numFmtId="164" fontId="0" fillId="3" borderId="1" xfId="0"><alignment horizontal="right" vertical="center"/></xf><xf numFmtId="0" fontId="0" fillId="4" borderId="1" xfId="0"><alignment vertical="top" wrapText="1"/></xf><xf numFmtId="0" fontId="0" fillId="5" borderId="1" xfId="0"><alignment vertical="center" horizontal="center" wrapText="1"/></xf><xf numFmtId="0" fontId="0" fillId="3" borderId="1" xfId="0"><alignment vertical="center" horizontal="center" wrapText="1"/></xf><xf numFmtId="0" fontId="0" fillId="5" borderId="1" xfId="0"><alignment horizontal="right" vertical="center"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
-export function exportStudyXlsx(project,notes={}){const model=reportWorkbookModel(project,notes),files=[],overrides=[],sheets=[],workbookRels=[],imageDefaults=new Set();let mediaSerial=0;
+export function seriesWorkbookModel(title,projects,profile={}){
+ const summary={name:'整剧目录',title:`观澜 ${title}`,context:'点击集数进入逐镜表。时间以该集或素材的研究起点为 0。',headers:['片源','名称','镜数','研究时长 秒','逐镜表','分析状态'],widths:[14,45,12,18,18,18],rows:[],freezeColumns:1};
+ const combined={name:'整剧结构',title:`${title} · 故事与卡点`,context:'依据项目中的集数、定位和已填写剧目资料。',headers:['类别','名称','集数或素材','内容','回看索引'],widths:[15,32,25,70,21],rows:[],freezeColumns:1};
+ const sheets=[summary,combined],references=new Map();
+ for(const project of projects){
+   const prefix=(mediaKind(project)==='material'?'M':'E')+mediaNumber(project)+' ';
+   const model=reportWorkbookModel(project),index=prefix+'逐镜表';
+   references.set(mediaKind(project)+mediaNumber(project),index);
+   summary.rows.push([mediaLabel(project),project.title,project.shots.length,project.meta.duration,{text:'查看逐镜',location:`'${index}'!A5`},project.status]);
+   for(const sheet of model.sheets){
+     sheet.name=prefix+sheet.name;
+     sheet.rows=sheet.rows.map(row=>row.map(cell=>{
+       if(cell&&typeof cell==='object'&&cell.location)return {...cell,location:cell.location.replace(/^'/,`'${prefix}`)};
+       if(cell&&typeof cell==='object'&&cell.formula)return {...cell,formula:cell.formula.replace(/'逐镜表'/g,`'${index}'`)};
+       return cell;
+     }));
+     sheets.push(sheet);
+   }
+   for(const cue of project.cues||[])combined.rows.push(['集尾卡点',cue.label,mediaLabel(project),cue.title,'']);
+ }
+ const reference=episode=>{
+   const sheet=references.get('episode'+episode);
+   return sheet?{text:`EP ${episode}`,location:`'${sheet}'!A5`}:'';
+ };
+ if(profile.framework)combined.rows.push(['故事框架','','',profile.framework,'']);
+ if(profile.world)combined.rows.push(['世界观','','',profile.world,'']);
+ for(const unit of profile.units||[])combined.rows.push(['故事单元',unit.title,`EP ${unit.from}–${unit.to}`,unit.text,reference(unit.from)]);
+ if(profile.paywall)paywallLabels.forEach((label,i)=>combined.rows.push(['付费卡点',label,`EP ${profile.paywall.episode}→${profile.paywall.episode+1}`,join(profile.paywall.stages[i],profile.paywall.source),reference(profile.paywall.episode)]));
+ for(const link of profile.materialLinks||[])combined.rows.push(['素材对应',`素材 ${link.material} · ${link.from}s`,`EP ${link.episode} · ${link.to}s`,link.text,reference(link.episode)]);
+ return {title,sheets};
+}
+export function exportStudyXlsx(project,notes={}){return writeWorkbook(reportWorkbookModel(project,notes));}
+export function exportSeriesXlsx(title,projects,profile={}){return writeWorkbook(seriesWorkbookModel(title,projects,profile));}
+function writeWorkbook(model){const files=[],overrides=[],sheets=[],workbookRels=[],imageDefaults=new Set();let mediaSerial=0;
  files.push(['_rels/.rels',`<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`],['xl/styles.xml',styles]);
  model.sheets.forEach((s,index)=>{const id=index+1,n=s.headers.length,lastRow=s.rows.length+5,lastColumn=columnName(n-1),links=[];sheets.push(`<sheet name="${xml(s.name)}" sheetId="${id}" r:id="rId${id}"/>`);workbookRels.push(`<Relationship Id="rId${id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${id}.xml"/>`);overrides.push(`<Override PartName="/xl/worksheets/sheet${id}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`);
  const rows=[`<row r="2" ht="28" customHeight="1">${dataCell(s.title,'A2',1)}</row>`,`<row r="3" ht="38" customHeight="1">${dataCell(s.context,'A3',2)}</row>`,`<row r="5" ht="32" customHeight="1">${s.headers.map((h,c)=>dataCell(h,columnName(c)+'5',3)).join('')}</row>`];

@@ -1,12 +1,12 @@
-import {importVideoLink,mediaFile} from './link-import.mjs';
+import {importVideoLink,mediaFile,cacheLocalMedia} from './link-import.mjs';
 import {createServer} from 'node:http';
 import {readFile,stat} from 'node:fs/promises';
 import {createReadStream} from 'node:fs';
 import {resolve,dirname,extname,relative,isAbsolute} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawn} from 'node:child_process';
-import {endpoint} from './dist/core.mjs';
-import {listProjects,saveProject,loadProject,deleteProject,connection,ROOT,readLearning,saveLearning} from './project-store.mjs';
+import {endpoint,VERSION} from './dist/core.mjs';
+import {listProjects,saveProject,restoreProjects,loadProject,deleteProject,connection,ROOT,readLearning,saveLearning,saveSelection} from './project-store.mjs';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'dist');
 const port=Number(process.env.GUANLAN_PORT||8780),origin=`http://127.0.0.1:${port}`;
 function open(){if(!process.argv.includes('--no-open'))spawn('rundll32.exe',['url.dll,FileProtocolHandler',origin],{windowsHide:true,detached:true,stdio:'ignore'}).unref();}
@@ -15,18 +15,24 @@ function json(res,status,data){res.writeHead(status,{'Content-Type':'application
 const server=createServer(async(req,res)=>{try{
  if(req.headers.host!==`127.0.0.1:${port}`)return json(res,403,{error:'仅本机工作台可访问'});
  const url=new URL(req.url,origin);
- if(url.pathname==='/desktop-health'&&req.method==='GET')return json(res,200,{app:'guanlan-desktop',version:'0.3.0'});
+ if(url.pathname==='/desktop-health'&&req.method==='GET')return json(res,200,{app:'guanlan-desktop',version:VERSION});
  if(url.pathname==='/api/connection'&&req.method==='GET'){const command=resolve(ROOT,'runtime','node.exe'),script=resolve(ROOT,'assistant-mcp.mjs');return json(res,200,{...await connection(),config:{mcpServers:{guanlan:{command,args:[script]}}},codex:`[mcp_servers.guanlan]\ncommand = ${JSON.stringify(command)}\nargs = [${JSON.stringify(script)}]\n`});}
  if(url.pathname==='/api/learning'&&req.method==='GET')return json(res,200,await readLearning());
  if(url.pathname.startsWith('/media/')&&(req.method==='GET'||req.method==='HEAD')){const m=await mediaFile(url.pathname),range=req.headers.range;let start=0,end=m.size-1;if(range){const match=/^bytes=(\d*)-(\d*)$/.exec(range);if(!match||!match[1]&&!match[2]){res.writeHead(416,{'Content-Range':`bytes */${m.size}`}).end();return;}if(match[1]){start=Number(match[1]);end=match[2]?Math.min(Number(match[2]),end):end;}else start=Math.max(0,m.size-Number(match[2]));if(start>end||start>=m.size){res.writeHead(416,{'Content-Range':`bytes */${m.size}`}).end();return;}}res.writeHead(range?206:200,{'Content-Type':m.mime,'Content-Length':end-start+1,'Accept-Ranges':'bytes',...(range?{'Content-Range':`bytes ${start}-${end}/${m.size}`}:{})});if(req.method==='HEAD')return res.end();const stream=createReadStream(m.file,{start,end});res.on('close',()=>stream.destroy());stream.on('error',()=>res.destroy());stream.pipe(res);return;}
  if(url.pathname==='/api/projects'&&req.method==='GET'){const p=await listProjects();return json(res,200,p.map(({id,title,updated,status})=>({id,title,updated,status})));}
  if(url.pathname==='/api/project'&&req.method==='GET')return json(res,200,await loadProject(url.searchParams.get('id')));
+ if(url.pathname==='/api/media'&&req.method==='POST'){
+  if(req.headers.origin!==origin||req.headers['content-type']!=='application/octet-stream')return json(res,403,{error:'仅可在本机工作台保存原片'});
+  return json(res,200,await cacheLocalMedia(req,url.searchParams.get('ext'),Number(req.headers['content-length'])));
+ }
  if(req.method==='POST'){
   if(req.headers.origin!==origin||!req.headers['content-type']?.startsWith('application/json'))return json(res,403,{error:'请从本机工作台发起请求'});
   if(url.pathname==='/shutdown'){json(res,200,{ok:true});server.close(()=>process.exit(0));return;}
   if(url.pathname==='/api/learning'){await saveLearning(await body(req,28e6));return json(res,200,{ok:true});}
   if(url.pathname==='/api/import-link'){const input=await body(req),controller=new AbortController();req.on('aborted',()=>controller.abort());res.on('close',()=>{if(!res.writableEnded)controller.abort();});try{const value=await importVideoLink(input.url,{signal:controller.signal});return json(res,200,value);}catch(e){return json(res,400,{error:e.name==='AbortError'?'已停止链接导入':e.message});}}
   if(url.pathname==='/api/project'){const p=await body(req,180e6);await saveProject(p);return json(res,200,{ok:true});}
+  if(url.pathname==='/api/restore'){const input=await body(req,510e6);await restoreProjects(input.projects);return json(res,200,{ok:true});}
+  if(url.pathname==='/api/analysis-selection')return json(res,200,await saveSelection(await body(req,8192)));
   if(url.pathname==='/api/delete-project'){const input=await body(req);await deleteProject(input.id);return json(res,200,{ok:true});}
   if(url.pathname!=='/api/model')return json(res,404,{error:'不存在'});
   const input=await body(req),urlString=endpoint(input.endpoint);

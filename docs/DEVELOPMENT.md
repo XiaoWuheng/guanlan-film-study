@@ -21,6 +21,8 @@ npm run check
 | `assistant-mcp.mjs` | stdio MCP 与图片、项目工具 |
 | `link-import.mjs` | HTTPS 直链与公开分享页获取 |
 | `dist/app.js` | 项目准备、候选切点、API 批次与工作台 |
+| `dist/project-library.mjs` | 剧目分组、资料、搜索、收藏与题材汇总 |
+| `dist/project-backup.mjs` | 单项目和整剧备份、恢复验证 |
 | `dist/study-tools.mjs` | 人工修订、复核签名、局部切镜和方法规则 |
 | `dist/workbench-tools.mjs` | 报告写回、学习库与局部镜头操作 |
 | `dist/viewer/` | 同步播放器、逐镜与全片结构学习界面 |
