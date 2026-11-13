@@ -24,10 +24,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
           $stage = Join-Path $env:RUNNER_TEMP 'guanlan-v0.5.0'
-          $sourceArchive = Join-Path $env:RUNNER_TEMP 'guanlan-v0.5.0-source.tar'
-          New-Item -ItemType Directory -Path $stage | Out-Null
-          git archive --format=tar -o $sourceArchive $env:RELEASE_COMMIT
-          tar.exe -xf $sourceArchive -C $stage
+          git -c core.autocrlf=false worktree add --detach $stage $env:RELEASE_COMMIT
           Set-Location -LiteralPath $stage
           node --test 'tests/*.test.mjs'
           node scripts/check-source.mjs
