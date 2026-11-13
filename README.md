@@ -6,7 +6,7 @@
 
 边看原片边拆镜头，复盘开场钩子、情绪推进和剪辑节奏。
 
-[下载 Windows 免安装版](https://github.com/XiaoWuheng/guanlan-film-study/releases/latest) · [在线试用 0.3](https://guanlan-film-study-jz.quirky-wolf-4804.chatgpt.site/) · [快速上手](docs/QUICKSTART.md) · [连接 AI](docs/AI-CONNECTION.md)
+[获取 v0.4.0 源码](https://github.com/XiaoWuheng/guanlan-film-study/releases/tag/v0.4.0) · [Windows 免安装版 0.3.0](https://github.com/XiaoWuheng/guanlan-film-study/releases/tag/v0.3.0) · [在线试用 0.3](https://guanlan-film-study-jz.quirky-wolf-4804.chatgpt.site/) · [快速上手](docs/QUICKSTART.md) · [连接 AI](docs/AI-CONNECTION.md)
 
 [v0.4.0 更新记录](CHANGELOG.md)
 · [MIT 开源许可](LICENSE)
@@ -38,16 +38,13 @@
 
 ## 开始使用
 
-### Windows：下载后双击启动
+### 运行 0.4.0
 
-1. 到 [Releases](https://github.com/XiaoWuheng/guanlan-film-study/releases/latest) 下载 **`Guanlan-Film-Study-0.4.0-Windows-x64.zip`**。
-2. 解压整个文件夹，双击 **`启动观澜.vbs`**。工作台会在浏览器中打开。
-3. 选择视频、学习范围和 AI 使用方式；也可以先手动观察、写笔记。
-4. 使用完毕，双击 **`关闭观澜.vbs`**。
+下载 [0.4.0 源码](https://github.com/XiaoWuheng/guanlan-film-study/releases/tag/v0.4.0)，安装 Node.js 24+ 后运行 `npm start`。打开终端显示的地址，导入视频并准备镜头。Windows 下可以按[构建说明](docs/DEVELOPMENT.md)生成免安装包。
 
-免安装包内含 Node.js 与公开链接解析组件，不需要先安装 Codex、Python 或 Node.js。AI 分析需要你自己的助手连接或模型 API。
+想双击启动体验，可以下载 [0.3.0 Windows 免安装版](https://github.com/XiaoWuheng/guanlan-film-study/releases/tag/v0.3.0)，解压整个文件夹后打开 `启动观澜.vbs`。AI 分析可连接自己的助手或模型 API。
 
-### 网页：先体验学习界面
+### 网页：体验 0.3
 
 打开 [观澜网页版](https://guanlan-film-study-jz.quirky-wolf-4804.chatgpt.site/)。项目保存在当前浏览器；换设备前请备份。模型 API 能否直接连接，取决于服务商是否允许浏览器请求。
 

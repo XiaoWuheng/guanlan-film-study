@@ -28,7 +28,7 @@
   <div id="library-filters" class="library-filters"><input id="project-search" type="search" placeholder="搜索剧名、标签、ID" aria-label="搜索项目"><select id="project-status" aria-label="分析状态"><option value="">全部状态</option><option value="已有分析">已有分析</option><option value="候选素材">待分析</option></select><select id="project-tag" aria-label="题材标签"><option value="">全部标签</option></select><select id="project-order" aria-label="项目排序"><option value="recent">最近打开</option><option value="updated">最近更新</option><option value="title">剧名</option></select></div>
   <div id="projects" class="projects"></div>
 </section>
-<footer><span>观澜 · 拉片学习工作台 · 0.4</span><a href="https://github.com/XiaoWuheng/guanlan-film-study/releases/latest" id="desktop-download">下载 Windows 免安装版</a></footer>
+<footer><span>观澜 · 拉片学习工作台 · 0.4</span><a href="https://github.com/XiaoWuheng/guanlan-film-study/releases/tag/v0.3.0" id="desktop-download">下载 Windows 免安装版 0.3.0</a></footer>
 <section id="workspace-dialog" aria-label="当前项目学习报告" hidden>
   <div class="dialog-head"><button id="close-workspace" aria-label="返回项目">← <span>项目</span></button><span id="workspace-feedback" role="status" hidden></span><div><button id="workspace-profile" hidden>整剧资料</button><button id="save-report" title="导出逐镜 Excel 报告">导出 Excel</button><button id="save-project">备份</button><button id="undo-cut" hidden title="撤销最近一次局部切镜或合并">撤销切镜</button></div></div>
   <div id="cut-editor" hidden><label>候选切点（秒，相对研究起点；含 0，不含片尾）<textarea id="cuts" rows="2"></textarea></label><button id="apply-cuts">应用切点并重抽帧</button><p class="muted small">调整会清除旧分析和对照；应用前自动保留旧项目备份。</p></div><iframe id="viewer" title="原片同步拉片报告"></iframe>

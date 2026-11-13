@@ -2,7 +2,7 @@
 
 ## 1. 打开工作台
 
-Windows 用户下载 Releases 中的免安装 ZIP，解压整个文件夹后双击 `启动观澜.vbs`。网页版可直接从仓库首页进入。
+0.4.0 可用 Node.js 24+ 从源码运行 `npm start`。Windows 下也可以按[构建说明](DEVELOPMENT.md)生成免安装包。仓库首页另有 0.3.0 的 Windows 免安装包和在线试用入口。
 
 想先试操作，可以恢复仓库 `examples/demo-project.json`，打开报告，再选择 `examples/Guanlan-Demo.mp4`。素材为原创示意片段，已有说明用于演示功能。
 
